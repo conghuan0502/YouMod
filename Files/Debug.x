@@ -2,11 +2,7 @@
 
 #define MAX_LOG_ENTRIES 200
 
-typedef NS_ENUM(NSUInteger, YouModLogLevel) {
-    YouModLogLevelInfo,
-    YouModLogLevelWarn,
-    YouModLogLevelError
-};
+// YouModLogLevel enum is defined in Headers.h
 
 static NSMutableArray *YouModLogs;
 static NSString *YouModLogPath(void) {
@@ -64,14 +60,14 @@ void YouModClearDebugLogs(void) {
     [YouModLogs removeAllObjects];
 }
 
-static void YouModLog(YouModLogLevel level, NSString *msg) {
+void YouModLog(YouModLogLevel level, NSString *msg) {
     NSLog(@"[YouMod] [%@] %@", YouModLogLevelString(level), msg);
     YouModWriteLog(level, msg);
 }
 
-static void YouModLogInfo(NSString *msg) { YouModLog(YouModLogLevelInfo, msg); }
-static void YouModLogWarn(NSString *msg) { YouModLog(YouModLogLevelWarn, msg); }
-static void YouModLogError(NSString *msg) { YouModLog(YouModLogLevelError, msg); }
+void YouModLogInfo(NSString *msg) { YouModLog(YouModLogLevelInfo, msg); }
+void YouModLogWarn(NSString *msg) { YouModLog(YouModLogLevelWarn, msg); }
+void YouModLogError(NSString *msg) { YouModLog(YouModLogLevelError, msg); }
 
 static void YouModToast(NSString *msg) {
     if (!IS_ENABLED(DebugMode)) return;

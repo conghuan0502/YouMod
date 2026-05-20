@@ -161,9 +161,18 @@
 #define NetworkLogging @"YouModNetworkLogging"
 #define BlockDomains @"YouModBlockDomains"
 #define SpoofClientVersion @"YouModSpoofClientVersion"
+typedef NS_ENUM(NSInteger, YouModLogLevel) {
+    YouModLogLevelInfo,
+    YouModLogLevelWarn,
+    YouModLogLevelError
+};
 extern NSString *YouModGetDebugLogs(void);
 extern NSInteger YouModGetLogCount(void);
 extern void YouModClearDebugLogs(void);
+extern void YouModLog(YouModLogLevel level, NSString *msg);
+extern void YouModLogInfo(NSString *msg);
+extern void YouModLogWarn(NSString *msg);
+extern void YouModLogError(NSString *msg);
 
 #define YT_BUNDLE_ID @"com.google.ios.youtube"
 #define YT_NAME @"YouTube"
