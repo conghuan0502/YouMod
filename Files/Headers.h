@@ -160,7 +160,6 @@
 #define DebugMode @"YouModDebugMode"
 #define NetworkLogging @"YouModNetworkLogging"
 #define BlockDomains @"YouModBlockDomains"
-#define SpoofClientVersion @"YouModSpoofClientVersion"
 typedef NS_ENUM(NSInteger, YouModLogLevel) {
     YouModLogLevelInfo,
     YouModLogLevelWarn,
