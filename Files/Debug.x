@@ -145,7 +145,7 @@ static void YouModForceResolve(Class cls, SEL sel) {
     // Create instance and call selector to trigger GPBMessage dynamic resolution
     id instance = [cls alloc];
     if (instance) {
-        [instance init];
+        (void)[instance init];
         ((void(*)(id, SEL))objc_msgSend)(instance, sel);
     }
 }
