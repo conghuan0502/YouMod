@@ -160,6 +160,7 @@
 #define DebugMode @"YouModDebugMode"
 #define NetworkLogging @"YouModNetworkLogging"
 #define BlockDomains @"YouModBlockDomains"
+#define DisableAdCoordinatorHooks @"YouModDisableAdCoordinatorHooks"
 typedef NS_ENUM(NSInteger, YouModLogLevel) {
     YouModLogLevelInfo,
     YouModLogLevelWarn,

@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "Ẩn tùy chọn 'Phát tiếp theo trong danh sách chờ' trong menu nổi.";
 "HIDE_LIKE_DISLIKE_VOTES" = "Ẩn thông báo Thích/Không thích";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Ẩn các thông báo bật lên khi bạn thích/không thích video.";
+"DISABLE_AD_COORDINATOR" = "Sửa lỗi phát video";
+"DISABLE_AD_COORDINATOR_DESC" = "Tắt hook ad coordinator. Bật nếu video không phát được (Something went wrong).";
