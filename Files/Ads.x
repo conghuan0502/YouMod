@@ -110,7 +110,7 @@ static NSMutableArray <YTIItemSectionRenderer *> *filteredArray(NSArray <YTIItem
 %end
 
 %hook YTLocalPlaybackController
-- (id)createAdsPlaybackCoordinator { return IS_ENABLED(DisableAdCoordinatorHooks) ? %orig : nil; }
+- (id)createAdsPlaybackCoordinator { return %orig; }
 %end
 
 %hook MDXSession

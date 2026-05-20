@@ -129,18 +129,6 @@ static void YouModDiagnostic(void) {
     free(classes);
 }
 
-typedef void (*VoidIMP)(id, SEL, ...);
-typedef id (*IDIMP)(id, SEL, ...);
-
-static void YouModHookSel(Class cls, SEL sel, IMP newImp, IMP *origOut) {
-    Method m = class_getInstanceMethod(cls, sel);
-    if (!m && origOut) *origOut = NULL;
-    if (!m) return;
-    IMP orig = method_getImplementation(m);
-    method_setImplementation(m, newImp);
-    if (origOut) *origOut = orig;
-}
-
 static void YouModForceResolve(Class cls, SEL sel) {
     // Create instance and call selector to trigger GPBMessage dynamic resolution
     id instance = [cls alloc];
