@@ -244,7 +244,7 @@ static void YouModInitRetryHooks(void) {
     id runner = [[runnerClass alloc] init];
     id testVCClass = NSClassFromString(@"YouModTestViewController");
     if (!testVCClass) return;
-    id testVC = [[testVCClass alloc] initWithRunner:runner];
+    id testVC = [[testVCClass alloc] performSelector:@selector(initWithRunner:) withObject:runner];
     [self presentViewController:testVC animated:YES completion:^{
         [runner performSelector:@selector(runAllTests)];
     }];
