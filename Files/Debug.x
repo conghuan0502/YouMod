@@ -260,7 +260,7 @@ static NSURLSession *YouModLoggingSession(void) {
     %orig;
     NSString *videoID = [self valueForKey:@"_contentVideoID"];
     if (videoID) {
-        YouModLogInfo(@"Playing video: %@", videoID);
+        YouModLogInfo([NSString stringWithFormat:@"Playing video: %@", videoID]);
     }
 }
 %end
