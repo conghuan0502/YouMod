@@ -295,22 +295,6 @@ static NSString *StatusString(YouModTestStatus status) {
 
 @end
 
-@interface YouModTestViewController : UIViewController
-- (instancetype)initWithRunner:(YouModTestRunner *)runner;
-@end
-
-@implementation UIViewController (YouModDebug)
-
-- (void)YouModRunTests {
-    YouModTestRunner *runner = [[YouModTestRunner alloc] init];
-    YouModTestViewController *testVC = [[YouModTestViewController alloc] initWithRunner:runner];
-    [self presentViewController:testVC animated:YES completion:^{
-        [runner runAllTests];
-    }];
-}
-
-@end
-
 @interface YouModTestViewController ()
 @property (nonatomic, strong) YouModTestRunner *runner;
 @property (nonatomic, strong) UITableView *tableView;

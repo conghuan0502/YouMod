@@ -238,6 +238,17 @@ static void YouModInitRetryHooks(void) {
         [self presentViewController:activity animated:YES completion:nil];
     }
 }
+- (void)YouModRunTests {
+    id runnerClass = NSClassFromString(@"YouModTestRunner");
+    if (!runnerClass) return;
+    id runner = [[runnerClass alloc] init];
+    id testVCClass = NSClassFromString(@"YouModTestViewController");
+    if (!testVCClass) return;
+    id testVC = [[testVCClass alloc] initWithRunner:runner];
+    [self presentViewController:testVC animated:YES completion:^{
+        [runner performSelector:@selector(runAllTests)];
+    }];
+}
 @end
 
 #pragma mark - Network Logging
