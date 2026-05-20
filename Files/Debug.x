@@ -80,6 +80,21 @@ static void YouModToast(NSString *msg) {
 
 %ctor {
     YouModLogInfo(@"YouMod debug initialized");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSArray *keywords = @[@"Playability", @"PlaybackData", @"PlayerResponse", @"ClientInfo", @"InnerTube", @"PlayabilityResolution"];
+        unsigned int count;
+        Class *classes = objc_copyClassList(&count);
+        for (unsigned int i = 0; i < count; i++) {
+            NSString *name = NSStringFromClass(classes[i]);
+            for (NSString *kw in keywords) {
+                if ([name containsString:kw]) {
+                    YouModLogInfo([NSString stringWithFormat:@"Found class: %@", name]);
+                    break;
+                }
+            }
+        }
+        free(classes);
+    });
 }
 
 %hook YTIPlayabilityStatus
