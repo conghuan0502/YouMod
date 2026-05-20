@@ -18,6 +18,10 @@ typedef NS_ENUM(NSInteger, YouModTestStatus) {
 @implementation YouModTestItem
 @end
 
+@interface YouModTestViewController : UIViewController
+- (instancetype)initWithRunner:(id)runner;
+@end
+
 @interface YouModTestRunner : NSObject
 @property (nonatomic, strong) NSMutableArray <YouModTestItem *> *tests;
 @property (nonatomic, assign) BOOL isRunning;
@@ -31,21 +35,11 @@ typedef NS_ENUM(NSInteger, YouModTestStatus) {
 
 static NSString *StatusIcon(YouModTestStatus status) {
     switch (status) {
-        case YouModTestStatusPassed:  return @"✓";
-        case YouModTestStatusFailed:  return @"✗";
-        case YouModTestStatusWarning: return @"⚠";
-        case YouModTestStatusRunning: return @"⟳";
-        default: return @"○";
-    }
-}
-
-static NSString *StatusString(YouModTestStatus status) {
-    switch (status) {
-        case YouModTestStatusPassed:  return @"PASS";
-        case YouModTestStatusFailed:  return @"FAIL";
-        case YouModTestStatusWarning: return @"WARN";
-        case YouModTestStatusRunning: return @"RUNNING";
-        default: return @"PENDING";
+        case YouModTestStatusPassed:  return @"\u2713";
+        case YouModTestStatusFailed:  return @"\u2717";
+        case YouModTestStatusWarning: return @"\u26A0";
+        case YouModTestStatusRunning: return @"\u27F3";
+        default: return @"\u25CB";
     }
 }
 
@@ -90,7 +84,6 @@ static NSString *StatusString(YouModTestStatus status) {
     NSTimeInterval start;
     NSTimeInterval elapsed;
 
-    // Test 1: Check if core classes exist
     start = CACurrentMediaTime();
     NSMutableArray *missingClasses = [NSMutableArray array];
     NSArray *coreClasses = @[
@@ -105,7 +98,7 @@ static NSString *StatusString(YouModTestStatus status) {
             [missingClasses addObject:clsName];
         }
     }
-    NSTimeInterval elapsed = CACurrentMediaTime() - start;
+    elapsed = CACurrentMediaTime() - start;
 
     if (missingClasses.count == 0) {
         [self addTest:@"Core Classes" detail:@"All core classes found" status:YouModTestStatusPassed duration:elapsed];
@@ -113,7 +106,6 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Core Classes" detail:[NSString stringWithFormat:@"Missing: %@", [missingClasses componentsJoinedByString:@", "]] status:YouModTestStatusFailed duration:elapsed];
     }
 
-    // Test 2: Check YTPlayerViewController hooks
     start = CACurrentMediaTime();
     Class ytpvc = NSClassFromString(@"YTPlayerViewController");
     BOOL hasLoadHook = ytpvc && class_getInstanceMethod(ytpvc, @selector(loadWithPlayerTransition:playbackConfig:));
@@ -125,7 +117,6 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Player Load Hook" detail:@"Hook not detected" status:YouModTestStatusFailed duration:elapsed];
     }
 
-    // Test 3: Check ad-related hooks
     start = CACurrentMediaTime();
     Class ytLocalPlayback = NSClassFromString(@"YTLocalPlaybackController");
     BOOL adCoordinatorSafe = YES;
@@ -143,7 +134,6 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Ad Coordinator" detail:@"May return nil (causes playback errors)" status:YouModTestStatusFailed duration:elapsed];
     }
 
-    // Test 4: Check YTPlayerResponse ad hooks
     start = CACurrentMediaTime();
     Class ytpr = NSClassFromString(@"YTPlayerResponse");
     BOOL hasPlayerAdsArray = ytpr && class_getInstanceMethod(ytpr, @selector(playerAdsArray));
@@ -156,7 +146,6 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Ad Array Hooks" detail:@"No ad array hooks detected" status:YouModTestStatusPassed duration:elapsed];
     }
 
-    // Test 5: Check playabilityStatus hook
     start = CACurrentMediaTime();
     BOOL hasPlayabilityHook = ytpr && class_getInstanceMethod(ytpr, @selector(playabilityStatus));
     elapsed = CACurrentMediaTime() - start;
@@ -172,7 +161,6 @@ static NSString *StatusString(YouModTestStatus status) {
     NSTimeInterval start;
     NSTimeInterval elapsed;
 
-    // Test 6: Check UserDefaults
     start = CACurrentMediaTime();
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     BOOL debugMode = [defaults boolForKey:@"YouModDebugMode"];
@@ -183,7 +171,6 @@ static NSString *StatusString(YouModTestStatus status) {
     elapsed = CACurrentMediaTime() - start;
     [self addTest:@"Configuration" detail:configInfo status:YouModTestStatusPassed duration:elapsed];
 
-    // Test 7: Check spoof version
     start = CACurrentMediaTime();
     if (spoofClient) {
         Class clientInfo = NSClassFromString(@"YTIClientInfo");
@@ -205,7 +192,6 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Spoof Version" detail:@"Disabled" status:YouModTestStatusPassed duration:elapsed];
     }
 
-    // Test 8: Check bundle
     start = CACurrentMediaTime();
     NSString *tweakBundlePath = [[NSBundle mainBundle] pathForResource:@"YouMod" ofType:@"bundle"];
     BOOL bundleExists = tweakBundlePath && [[NSFileManager defaultManager] fileExistsAtPath:tweakBundlePath];
@@ -222,7 +208,6 @@ static NSString *StatusString(YouModTestStatus status) {
     NSTimeInterval start;
     NSTimeInterval elapsed;
 
-    // Test 9: Check if YouTube app is responsive
     start = CACurrentMediaTime();
     BOOL appResponsive = [[UIApplication sharedApplication] applicationState] == UIApplicationStateActive;
     elapsed = CACurrentMediaTime() - start;
@@ -233,7 +218,6 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"App Responsive" detail:@"App not in foreground" status:YouModTestStatusWarning duration:elapsed];
     }
 
-    // Test 10: Check network connectivity
     start = CACurrentMediaTime();
     NSURL *testURL = [NSURL URLWithString:@"https://www.googleapis.com"];
     NSURLRequest *request = [NSURLRequest requestWithURL:testURL cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:5];
@@ -253,10 +237,8 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Network" detail:@"Cannot reach Google APIs" status:YouModTestStatusFailed duration:elapsed];
     }
 
-    // Test 11: Check dylib load status
     start = CACurrentMediaTime();
     BOOL dylibLoaded = NO;
-    // Check if any of our symbols are resolved
     if (NSClassFromString(@"YTPlayerViewController")) {
         unsigned int methodCount;
         Method *methods = class_copyMethodList(NSClassFromString(@"YTPlayerViewController"), &methodCount);
@@ -273,16 +255,17 @@ static NSString *StatusString(YouModTestStatus status) {
         [self addTest:@"Dylib Loaded" detail:@"Dylib may not be loaded" status:YouModTestStatusFailed duration:elapsed];
     }
 
-    // Test 12: Check for crash logs
     start = CACurrentMediaTime();
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES);
     NSString *libPath = paths.firstObject;
     NSString *crashPath = [libPath stringByAppendingPathComponent:@"Logs/CrashReporter"];
     NSArray *crashFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:crashPath error:nil];
     NSInteger ytCrashCount = 0;
-    for (NSString *file in crashFiles) {
-        if ([file containsString:@"YouTube"]) {
-            ytCrashCount++;
+    if (crashFiles) {
+        for (NSString *file in crashFiles) {
+            if ([file containsString:@"YouTube"]) {
+                ytCrashCount++;
+            }
         }
     }
     elapsed = CACurrentMediaTime() - start;
@@ -305,10 +288,10 @@ static NSString *StatusString(YouModTestStatus status) {
 
 @implementation YouModTestViewController
 
-- (instancetype)initWithRunner:(YouModTestRunner *)runner {
+- (instancetype)initWithRunner:(id)runner {
     self = [super init];
     if (self) {
-        _runner = runner;
+        _runner = (YouModTestRunner *)runner;
     }
     return self;
 }
@@ -318,7 +301,6 @@ static NSString *StatusString(YouModTestStatus status) {
     self.title = @"YouMod Tests";
     self.view.backgroundColor = [UIColor systemBackgroundColor];
 
-    // Summary label
     self.summaryLabel = [[UILabel alloc] init];
     self.summaryLabel.font = [UIFont boldSystemFontOfSize:14];
     self.summaryLabel.textColor = [UIColor secondaryLabelColor];
@@ -327,12 +309,10 @@ static NSString *StatusString(YouModTestStatus status) {
     self.summaryLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.summaryLabel];
 
-    // Spinner
     self.spinner = [[UIActivityIndicatorView alloc] initWithStyle:UIActivityIndicatorViewStyleMedium];
     self.spinner.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.spinner];
 
-    // Table view
     self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
     self.tableView.delegate = self;
     self.tableView.dataSource = self;
@@ -340,30 +320,26 @@ static NSString *StatusString(YouModTestStatus status) {
     self.tableView.backgroundColor = [UIColor systemBackgroundColor];
     [self.view addSubview:self.tableView];
 
-    // Constraints
     [NSLayoutConstraint activateConstraints:@[
         [self.spinner.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
         [self.spinner.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor constant:-100],
-
         [self.summaryLabel.topAnchor constraintEqualToAnchor:self.spinner.bottomAnchor constant:20],
         [self.summaryLabel.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.summaryLabel.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
-
         [self.tableView.topAnchor constraintEqualToAnchor:self.summaryLabel.bottomAnchor constant:20],
         [self.tableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [self.tableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
         [self.tableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
     ]];
 
-    // Setup runner callbacks
     __weak typeof(self) weakSelf = self;
-    runner.onUpdate = ^{
+    self.runner.onUpdate = ^{
         dispatch_async(dispatch_get_main_queue(), ^{
             [weakSelf.tableView reloadData];
             [weakSelf updateSummary];
         });
     };
-    runner.onComplete = ^{
+    self.runner.onComplete = ^{
         dispatch_async(dispatch_get_main_queue(), ^{
             [weakSelf.spinner stopAnimating];
             [weakSelf.tableView reloadData];
@@ -385,15 +361,13 @@ static NSString *StatusString(YouModTestStatus status) {
         }
     }
     NSString *status = self.runner.isRunning ? @"Running..." : @"Complete";
-    self.summaryLabel.text = [NSString stringWithFormat:@"%@ — Pass: %ld | Fail: %ld | Warn: %ld", status, (long)passCount, (long)failCount, (long)warnCount];
+    self.summaryLabel.text = [NSString stringWithFormat:@"%@ - Pass: %ld | Fail: %ld | Warn: %ld", status, (long)passCount, (long)failCount, (long)warnCount];
 
     if (!self.runner.isRunning) {
         UIColor *tintColor = failCount > 0 ? [UIColor systemRedColor] : (warnCount > 0 ? [UIColor systemOrangeColor] : [UIColor systemGreenColor]);
         self.summaryLabel.textColor = tintColor;
     }
 }
-
-#pragma mark - UITableViewDataSource
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     return self.runner.tests.count;
@@ -427,8 +401,6 @@ static NSString *StatusString(YouModTestStatus status) {
 
     return cell;
 }
-
-#pragma mark - UITableViewDelegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
