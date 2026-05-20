@@ -19,15 +19,16 @@ static void YouModDebugToast(NSString *msg) {
 - (BOOL)isPlayable {
     BOOL playable = %orig;
     if (!playable && IS_ENABLED(DebugMode)) {
+        id s = self;
         int status = 0;
         NSString *reason = nil;
         long long errorCode = 0;
-        if ([self respondsToSelector:@selector(status)])
-            status = (int)[self performSelector:@selector(status)];
-        if ([self respondsToSelector:@selector(reason)])
-            reason = [self performSelector:@selector(reason)];
-        if ([self respondsToSelector:@selector(errorCode)])
-            errorCode = (long long)[self performSelector:@selector(errorCode)];
+        if ([s respondsToSelector:@selector(status)])
+            status = (int)[s performSelector:@selector(status)];
+        if ([s respondsToSelector:@selector(reason)])
+            reason = [s performSelector:@selector(reason)];
+        if ([s respondsToSelector:@selector(errorCode)])
+            errorCode = (long long)[s performSelector:@selector(errorCode)];
         YouModDebugToast([NSString stringWithFormat:@"isPlayable=NO status=%d reason=%@ errorCode=%lld", status, reason ?: @"nil", errorCode]);
     }
     return playable;
@@ -35,8 +36,8 @@ static void YouModDebugToast(NSString *msg) {
 %end
 
 %hook YTPlayerResponse
-- (YTIPlayabilityStatus *)playabilityStatus {
-    YTIPlayabilityStatus *status = %orig;
+- (id)playabilityStatus {
+    id status = %orig;
     if (IS_ENABLED(DebugMode) && status) {
         BOOL playable = YES;
         if ([status respondsToSelector:@selector(isPlayable)])
