@@ -265,3 +265,5 @@
 "BLOCK_DOMAINS_DESC" = "Block Google tracking/abuse domains (iosantiabuse, play, clients3, s.youtube).";
 "DISABLE_AD_COORDINATOR" = "Fix Video Playback";
 "DISABLE_AD_COORDINATOR_DESC" = "Disable ad coordinator hook. Turn ON if videos fail to play (Something went wrong).";
+"SPOOF_CLIENT_VERSION" = "Spoof Client Version";
+"SPOOF_CLIENT_VERSION_DESC" = "Report a modern YouTube version (21.20.4) to the server. May help bypass version-based blocks.";
