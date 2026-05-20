@@ -2,6 +2,12 @@
 
 #define MAX_LOG_ENTRIES 200
 
+typedef NS_ENUM(NSUInteger, YouModLogLevel) {
+    YouModLogLevelInfo,
+    YouModLogLevelWarn,
+    YouModLogLevelError
+};
+
 static NSMutableArray *YouModLogs;
 static NSString *YouModLogPath(void) {
     static NSString *path;
@@ -13,13 +19,24 @@ static NSString *YouModLogPath(void) {
     return path;
 }
 
-static void YouModWriteLog(NSString *msg) {
+static NSString *YouModLogLevelString(YouModLogLevel level) {
+    switch (level) {
+        case YouModLogLevelInfo:  return @"INFO";
+        case YouModLogLevelWarn:  return @"WARN";
+        case YouModLogLevelError: return @"ERROR";
+    }
+    return @"INFO";
+}
+
+static void YouModWriteLog(YouModLogLevel level, NSString *msg) {
     if (!YouModLogs) YouModLogs = [NSMutableArray array];
-    [YouModLogs addObject:msg];
+    NSString *ts = [NSDateFormatter localizedStringFromDate:[NSDate date] dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
+    NSString *entry = [NSString stringWithFormat:@"[%@] [%@] %@", ts, YouModLogLevelString(level), msg];
+    [YouModLogs addObject:entry];
     if (YouModLogs.count > MAX_LOG_ENTRIES)
         [YouModLogs removeObjectsInRange:NSMakeRange(0, YouModLogs.count - MAX_LOG_ENTRIES)];
-    NSString *line = [NSString stringWithFormat:@"[%@] %@\n", [NSDate date], msg];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        NSString *line = [entry stringByAppendingString:@"\n"];
         NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:YouModLogPath()];
         if (!fh) {
             [line writeToFile:YouModLogPath() atomically:YES encoding:NSUTF8StringEncoding error:nil];
@@ -38,31 +55,41 @@ NSString *YouModGetDebugLogs(void) {
     return @"(no logs)";
 }
 
+NSInteger YouModGetLogCount(void) {
+    return YouModLogs.count;
+}
+
 void YouModClearDebugLogs(void) {
     [[NSFileManager defaultManager] removeItemAtPath:YouModLogPath() error:nil];
     [YouModLogs removeAllObjects];
 }
 
-static void YouModDebugLog(NSString *msg) {
-    if (!IS_ENABLED(DebugMode)) return;
-    NSLog(@"[YouMod Debug] %@", msg);
-    YouModWriteLog(msg);
+static void YouModLog(YouModLogLevel level, NSString *msg) {
+    NSLog(@"[YouMod] [%@] %@", YouModLogLevelString(level), msg);
+    YouModWriteLog(level, msg);
 }
 
-static void YouModDebugToast(NSString *msg) {
+static void YouModLogInfo(NSString *msg) { YouModLog(YouModLogLevelInfo, msg); }
+static void YouModLogWarn(NSString *msg) { YouModLog(YouModLogLevelWarn, msg); }
+static void YouModLogError(NSString *msg) { YouModLog(YouModLogLevelError, msg); }
+
+static void YouModToast(NSString *msg) {
     if (!IS_ENABLED(DebugMode)) return;
-    YouModDebugLog(msg);
     Class toastClass = %c(YTToastResponderEvent);
     if (toastClass) {
-        id event = [toastClass eventWithMessage:[@"⚠️ Debug: " stringByAppendingString:msg] firstResponder:nil];
+        id event = [toastClass eventWithMessage:[@"⚠️ " stringByAppendingString:msg] firstResponder:nil];
         if (event) [event send];
     }
+}
+
+%ctor {
+    YouModLogInfo(@"YouMod debug initialized");
 }
 
 %hook YTIPlayabilityStatus
 - (BOOL)isPlayable {
     BOOL playable = %orig;
-    if (!playable && IS_ENABLED(DebugMode)) {
+    if (!playable) {
         id s = self;
         int status = 0;
         NSString *reason = nil;
@@ -73,7 +100,9 @@ static void YouModDebugToast(NSString *msg) {
             reason = [s performSelector:@selector(reason)];
         if ([s respondsToSelector:@selector(errorCode)])
             errorCode = (long long)(NSInteger)[s performSelector:@selector(errorCode)];
-        YouModDebugToast([NSString stringWithFormat:@"isPlayable=NO status=%d reason=%@ errorCode=%lld", status, reason ?: @"nil", errorCode]);
+        YouModLogWarn([NSString stringWithFormat:@"isPlayable=NO status=%d reason=%@ errorCode=%lld", status, reason ?: @"nil", errorCode]);
+        if (IS_ENABLED(DebugMode))
+            YouModToast([NSString stringWithFormat:@"Playability: status=%d %@", status, reason ?: @""]);
     }
     return playable;
 }
@@ -82,7 +111,7 @@ static void YouModDebugToast(NSString *msg) {
 %hook YTPlayerResponse
 - (id)playabilityStatus {
     id status = %orig;
-    if (IS_ENABLED(DebugMode) && status) {
+    if (status) {
         BOOL playable = YES;
         if ([status respondsToSelector:@selector(isPlayable)])
             playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
@@ -93,7 +122,10 @@ static void YouModDebugToast(NSString *msg) {
                 reason = [status performSelector:@selector(reason)];
             if ([status respondsToSelector:@selector(subReason)])
                 subreason = [status performSelector:@selector(subReason)];
-            YouModDebugToast([NSString stringWithFormat:@"PlayerResponse: not playable reason=%@ subreason=%@", reason ?: @"nil", subreason ?: @"nil"]);
+            YouModLogWarn([NSString stringWithFormat:@"PlayerResponse not playable reason=%@ subreason=%@", reason ?: @"nil", subreason ?: @"nil"]);
+        }
+        if (IS_ENABLED(DebugMode)) {
+            YouModLogInfo([NSString stringWithFormat:@"PlayerResponse loaded (playable=%d)", playable]);
         }
     }
     return status;
@@ -102,22 +134,26 @@ static void YouModDebugToast(NSString *msg) {
 
 %hook YTPlayabilityResolutionUserActionUIController
 - (void)showConfirmAlert {
-    if (IS_ENABLED(DebugMode)) YouModDebugToast(@"Something went wrong - confirm alert");
+    YouModLogError(@"Something went wrong - confirm alert shown");
+    if (IS_ENABLED(DebugMode)) YouModToast(@"Something went wrong - confirm alert");
     %orig;
 }
 - (void)showError {
-    if (IS_ENABLED(DebugMode)) YouModDebugToast(@"Playability error displayed");
+    YouModLogError(@"Playability error view displayed");
+    if (IS_ENABLED(DebugMode)) YouModToast(@"Playability error view");
     %orig;
 }
 %end
 
 %hook YTPlayabilityResolutionUserActionUIControllerImpl
 - (void)showConfirmAlert {
-    if (IS_ENABLED(DebugMode)) YouModDebugToast(@"Something went wrong - confirm alert");
+    YouModLogError(@"Something went wrong - confirm alert shown");
+    if (IS_ENABLED(DebugMode)) YouModToast(@"Something went wrong - confirm alert");
     %orig;
 }
 - (void)showError {
-    if (IS_ENABLED(DebugMode)) YouModDebugToast(@"Playability error displayed");
+    YouModLogError(@"Playability error view displayed");
+    if (IS_ENABLED(DebugMode)) YouModToast(@"Playability error view");
     %orig;
 }
 %end
@@ -125,9 +161,106 @@ static void YouModDebugToast(NSString *msg) {
 %hook YTPlaybackData
 - (id)initWithCoder:(NSCoder *)coder {
     self = %orig;
-    if (IS_ENABLED(DebugMode) && self) {
-        YouModDebugLog([NSString stringWithFormat:@"PlaybackData loaded: %@", self]);
+    if (self) {
+        YouModLogInfo(@"PlaybackData loaded");
     }
     return self;
+}
+%end
+
+@implementation UIViewController (YouModDebug)
+- (void)YouModShareLogs {
+    NSString *logs = YouModGetDebugLogs();
+    if (![logs isEqual:@"(no logs)"]) {
+        NSURL *fileURL = [NSURL fileURLWithPath:YouModLogPath()];
+        UIActivityViewController *activity = [[UIActivityViewController alloc] initWithActivityItems:@[fileURL] applicationActivities:nil];
+        [self presentViewController:activity animated:YES completion:nil];
+    }
+}
+@end
+
+#pragma mark - Network Logging
+
+@interface _YouModLoggingURLProtocol : NSURLProtocol <NSURLSessionDataDelegate>
+@property (nonatomic, strong) NSURLSessionDataTask *dataTask;
+@property (nonatomic, strong) NSURLResponse *response;
+@property (nonatomic, copy) NSString *requestURL;
+@property (nonatomic, copy) NSString *requestMethod;
+@end
+
+static NSURLSession *YouModLoggingSession(void) {
+    static NSURLSession *session;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+        session = [NSURLSession sessionWithConfiguration:config];
+    });
+    return session;
+}
+
+@implementation _YouModLoggingURLProtocol
+
++ (BOOL)canInitWithRequest:(NSURLRequest *)request {
+    if (!IS_ENABLED(NetworkLogging)) return NO;
+    if ([NSURLProtocol propertyForKey:@"YouModLogged" inRequest:request]) return NO;
+    NSString *scheme = request.URL.scheme.lowercaseString;
+    return [scheme isEqualToString:@"http"] || [scheme isEqualToString:@"https"];
+}
+
++ (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request {
+    return request;
+}
+
+- (void)startLoading {
+    self.requestURL = self.request.URL.absoluteString;
+    self.requestMethod = self.request.HTTPMethod ?: @"GET";
+    YouModLogInfo([NSString stringWithFormat:@"🌐 REQ %@ %@", self.requestMethod, self.requestURL]);
+
+    NSMutableURLRequest *newReq = [self.request mutableCopy];
+    [NSURLProtocol setProperty:@YES forKey:@"YouModLogged" inRequest:newReq];
+    self.dataTask = [YouModLoggingSession() dataTaskWithRequest:newReq];
+    [self.dataTask resume];
+}
+
+- (void)stopLoading {
+    [self.dataTask cancel];
+}
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
+    self.response = response;
+    [self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+    completionHandler(NSURLSessionResponseAllow);
+}
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
+    [self.client URLProtocol:self didLoadData:data];
+}
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+    if (error) {
+        [self.client URLProtocol:self didFailWithError:error];
+        YouModLogWarn([NSString stringWithFormat:@"🌐 ERR %@ - %@", self.requestURL, error.localizedDescription]);
+    } else {
+        [self.client URLProtocolDidFinishLoading:self];
+        long statusCode = 0;
+        if ([self.response isKindOfClass:[NSHTTPURLResponse class]])
+            statusCode = ((NSHTTPURLResponse *)self.response).statusCode;
+        YouModLogInfo([NSString stringWithFormat:@"🌐 RSP %ld %@ (%lld bytes)", statusCode, self.requestURL, task.countOfBytesReceived]);
+    }
+}
+
+@end
+
+%ctor {
+    [NSURLProtocol registerClass:[_YouModLoggingURLProtocol class]];
+}
+
+%hook YTPlayerViewController
+- (void)loadWithPlayerTransition:(id)arg1 playbackConfig:(id)arg2 {
+    %orig;
+    NSString *videoID = [self valueForKey:@"_contentVideoID"];
+    if (videoID) {
+        YouModLogInfo(@"Playing video: %@", videoID);
+    }
 }
 %end

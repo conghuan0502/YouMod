@@ -511,21 +511,25 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
             BASIC_SWITCH(LOC(@"HIDE_LIKE_DISLIKE_VOTES"), LOC(@"HIDE_LIKE_DISLIKE_VOTES_DESC"), HideLikeDislikeVotes),
             BASIC_SWITCH(LOC(@"DEBUG_MODE"), LOC(@"DEBUG_MODE_DESC"), DebugMode),
             [YTSettingsSectionItemClass itemWithTitle:LOC(@"VIEW_LOGS")
-                titleDescription:LOC(@"VIEW_LOGS_DESC")
+                titleDescription:[NSString stringWithFormat:LOC(@"VIEW_LOGS_DESC"), (int)YouModGetLogCount()]
                 accessibilityIdentifier:nil
                 detailTextBlock:nil
                 selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
                     UIViewController *logVC = [[UIViewController alloc] init];
                     logVC.title = LOC(@"VIEW_LOGS");
-                    UITextView *textView = [[UITextView alloc] initWithFrame:logVC.view.bounds];
-                    textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-                    textView.editable = NO;
-                    textView.font = [UIFont fontWithName:@"Menlo" size:11];
-                    textView.text = YouModGetDebugLogs();
-                    [logVC.view addSubview:textView];
                     UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:logVC];
+                    UIViewController *vc = settingsViewController;
+                    if (vc.presentedViewController) vc = vc.presentedViewController;
+                    [vc presentViewController:nav animated:YES completion:^{
+                        UITextView *textView = [[UITextView alloc] initWithFrame:logVC.view.bounds];
+                        textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                        textView.editable = NO;
+                        textView.font = [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightRegular];
+                        textView.text = YouModGetDebugLogs();
+                        [logVC.view addSubview:textView];
+                    }];
                     logVC.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:LOC(@"CLOSE") style:UIBarButtonItemStyleDone target:logVC action:@selector(dismissViewControllerAnimated:completion:)];
-                    [settingsViewController presentViewController:nav animated:YES completion:nil];
+                    logVC.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:logVC action:@selector(YouModShareLogs)];
                     return YES;
                 }
             ],
@@ -541,6 +545,7 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
                     return YES;
                 }
             ],
+            BASIC_SWITCH(LOC(@"NETWORK_LOGGING"), LOC(@"NETWORK_LOGGING_DESC"), NetworkLogging),
         ];        
         YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"MISCELLANEOUS") pickerSectionTitle:nil rows:rows selectedItemIndex:0 parentResponder:[self parentResponder]];
         [settingsViewController pushViewController:picker];

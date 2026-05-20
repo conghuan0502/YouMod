@@ -158,7 +158,9 @@
 // #define CustomStartup @"YouModUseCustomVideoStartup"
 // Debug
 #define DebugMode @"YouModDebugMode"
+#define NetworkLogging @"YouModNetworkLogging"
 extern NSString *YouModGetDebugLogs(void);
+extern NSInteger YouModGetLogCount(void);
 extern void YouModClearDebugLogs(void);
 
 #define YT_BUNDLE_ID @"com.google.ios.youtube"
@@ -283,4 +285,8 @@ typedef NS_ENUM(NSUInteger, GestureSection) {
 
 @interface YTSingleVideoController (YouMod)
 @property (nonatomic, assign, readonly) CGFloat totalMediaTime;
+@end
+
+@interface UIViewController (YouModDebug)
+- (void)YouModShareLogs;
 @end

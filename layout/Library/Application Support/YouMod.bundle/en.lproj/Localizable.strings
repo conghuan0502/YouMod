@@ -254,8 +254,10 @@
 "DEBUG_MODE" = "Debug Mode";
 "DEBUG_MODE_DESC" = "Log detailed playback errors (something went wrong, no stream, etc.) to the system console.";
 "VIEW_LOGS" = "View Debug Logs";
-"VIEW_LOGS_DESC" = "Show captured debug logs.";
+"VIEW_LOGS_DESC" = "Show captured debug logs (%d entries).";
 "CLEAR_LOGS" = "Clear Debug Logs";
 "CLEAR_LOGS_DESC" = "Delete all captured debug logs.";
 "CLOSE" = "Close";
 "LOGS_CLEARED" = "Debug logs cleared.";
+"NETWORK_LOGGING" = "Log Network Requests";
+"NETWORK_LOGGING_DESC" = "Log all HTTP/HTTPS requests and responses (URL, status code, errors).";
