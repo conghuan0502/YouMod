@@ -263,3 +263,5 @@
 "NETWORK_LOGGING_DESC" = "Log all HTTP/HTTPS requests and responses (URL, status code, errors).";
 "BLOCK_DOMAINS" = "Block Tracking Domains";
 "BLOCK_DOMAINS_DESC" = "Block Google tracking/abuse domains (iosantiabuse, play, clients3, s.youtube).";
+"SPOOF_CLIENT_VERSION" = "Spoof Client Version";
+"SPOOF_CLIENT_VERSION_DESC" = "Report a modern YouTube version (21.20.4) to the server. May help bypass version-based blocks.";

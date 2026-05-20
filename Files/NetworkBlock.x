@@ -24,6 +24,7 @@ static NSArray *blockedDomains;
     if (host.length == 0) return NO;
     for (NSString *domain in blockedDomains) {
         if ([host containsString:domain]) {
+            NSLog(@"[YouMod] [WARN] 🛑 BLOCKED %@", request.URL.absoluteString);
             return YES;
         }
     }

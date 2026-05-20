@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "Ẩn tùy chọn 'Phát tiếp theo trong danh sách chờ' trong menu nổi.";
 "HIDE_LIKE_DISLIKE_VOTES" = "Ẩn thông báo Thích/Không thích";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Ẩn các thông báo bật lên khi bạn thích/không thích video.";
+"SPOOF_CLIENT_VERSION" = "Giả mạo phiên bản";
+"SPOOF_CLIENT_VERSION_DESC" = "Báo cáo phiên bản YouTube mới (21.20.4) cho máy chủ. Có thể giúp vượt qua chặn dựa trên phiên bản.";

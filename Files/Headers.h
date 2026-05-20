@@ -160,6 +160,7 @@
 #define DebugMode @"YouModDebugMode"
 #define NetworkLogging @"YouModNetworkLogging"
 #define BlockDomains @"YouModBlockDomains"
+#define SpoofClientVersion @"YouModSpoofClientVersion"
 extern NSString *YouModGetDebugLogs(void);
 extern NSInteger YouModGetLogCount(void);
 extern void YouModClearDebugLogs(void);
