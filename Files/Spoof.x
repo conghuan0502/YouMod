@@ -8,7 +8,7 @@ static NSString *repl_YTIClientInfo_clientVersion(id self, SEL _cmd) {
     }
     if (orig_YTIClientInfo_clientVersion)
         return orig_YTIClientInfo_clientVersion(self, _cmd);
-    return [self valueForKey:@"clientVersion"];
+    return nil;
 }
 
 %ctor {
@@ -21,16 +21,15 @@ static NSString *repl_YTIClientInfo_clientVersion(id self, SEL _cmd) {
         }
         Method m = class_getInstanceMethod(cls, @selector(clientVersion));
         if (!m) {
-            id dummy = [[cls alloc] init];
-            [dummy clientVersion];
+            [(id)[[cls alloc] init] clientVersion];
             m = class_getInstanceMethod(cls, @selector(clientVersion));
         }
         if (m) {
             orig_YTIClientInfo_clientVersion = (void *)method_getImplementation(m);
             class_replaceMethod(cls, @selector(clientVersion), (IMP)repl_YTIClientInfo_clientVersion, method_getTypeEncoding(m));
-            YouModLogInfo(@"Spoof: clientVersion hooked -> 21.20.4");
         } else {
-            YouModLogWarn(@"Spoof: clientVersion not resolved");
+            class_addMethod(cls, @selector(clientVersion), (IMP)repl_YTIClientInfo_clientVersion, "@@:");
         }
+        YouModLogInfo(@"Spoof: clientVersion hooked -> 21.20.4");
     });
 }
