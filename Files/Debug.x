@@ -24,11 +24,11 @@ static void YouModDebugToast(NSString *msg) {
         NSString *reason = nil;
         long long errorCode = 0;
         if ([s respondsToSelector:@selector(status)])
-            status = (int)[s performSelector:@selector(status)];
+            status = (int)(NSInteger)[s performSelector:@selector(status)];
         if ([s respondsToSelector:@selector(reason)])
             reason = [s performSelector:@selector(reason)];
         if ([s respondsToSelector:@selector(errorCode)])
-            errorCode = (long long)[s performSelector:@selector(errorCode)];
+            errorCode = (long long)(NSInteger)[s performSelector:@selector(errorCode)];
         YouModDebugToast([NSString stringWithFormat:@"isPlayable=NO status=%d reason=%@ errorCode=%lld", status, reason ?: @"nil", errorCode]);
     }
     return playable;
@@ -41,7 +41,7 @@ static void YouModDebugToast(NSString *msg) {
     if (IS_ENABLED(DebugMode) && status) {
         BOOL playable = YES;
         if ([status respondsToSelector:@selector(isPlayable)])
-            playable = (BOOL)[status performSelector:@selector(isPlayable)];
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
         if (!playable) {
             NSString *reason = nil;
             NSString *subreason = nil;
