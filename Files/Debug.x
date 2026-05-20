@@ -129,38 +129,30 @@ static void YouModDiagnostic(void) {
     free(classes);
 }
 
-%ctor {
-    YouModLogInfo(@"YouMod debug initialized");
-    dispatch_async(dispatch_get_main_queue(), ^{
-        YouModDiagnostic();
-    });
+typedef void (*VoidIMP)(id, SEL, ...);
+typedef id (*IDIMP)(id, SEL, ...);
+
+static void YouModHookSel(Class cls, SEL sel, IMP newImp, IMP *origOut) {
+    Method m = class_getInstanceMethod(cls, sel);
+    if (!m && origOut) *origOut = NULL;
+    if (!m) return;
+    IMP orig = method_getImplementation(m);
+    method_setImplementation(m, newImp);
+    if (origOut) *origOut = orig;
 }
 
-%hook YTIPlayabilityStatusEnum
-- (BOOL)isPlayable {
-    BOOL playable = %orig;
-    if (!playable) {
-        id s = self;
-        int status = 0;
-        NSString *reason = nil;
-        long long errorCode = 0;
-        if ([s respondsToSelector:@selector(status)])
-            status = (int)(NSInteger)[s performSelector:@selector(status)];
-        if ([s respondsToSelector:@selector(reason)])
-            reason = [s performSelector:@selector(reason)];
-        if ([s respondsToSelector:@selector(errorCode)])
-            errorCode = (long long)(NSInteger)[s performSelector:@selector(errorCode)];
-        YouModLogWarn([NSString stringWithFormat:@"isPlayable=NO status=%d reason=%@ errorCode=%lld", status, reason ?: @"nil", errorCode]);
-        if (IS_ENABLED(DebugMode))
-            YouModToast([NSString stringWithFormat:@"Playability: status=%d %@", status, reason ?: @""]);
+static void YouModForceResolve(Class cls, SEL sel) {
+    // Create instance and call selector to trigger GPBMessage dynamic resolution
+    id instance = [cls alloc];
+    if (instance) {
+        [instance init];
+        ((void(*)(id, SEL))objc_msgSend)(instance, sel);
     }
-    return playable;
 }
-%end
 
-%hook YTPlayerResponse
-- (id)playabilityStatus {
-    id status = %orig;
+static id (*orig_YTPlayerResponse_playabilityStatus)(id, SEL);
+static id hook_YTPlayerResponse_playabilityStatus(id self, SEL _cmd) {
+    id status = orig_YTPlayerResponse_playabilityStatus(self, _cmd);
     if (status) {
         BOOL playable = YES;
         if ([status respondsToSelector:@selector(isPlayable)])
@@ -174,41 +166,80 @@ static void YouModDiagnostic(void) {
                 subreason = [status performSelector:@selector(subReason)];
             YouModLogWarn([NSString stringWithFormat:@"PlayerResponse not playable reason=%@ subreason=%@", reason ?: @"nil", subreason ?: @"nil"]);
         }
-        if (IS_ENABLED(DebugMode)) {
+        if (IS_ENABLED(DebugMode))
             YouModLogInfo([NSString stringWithFormat:@"PlayerResponse loaded (playable=%d)", playable]);
-        }
     }
     return status;
 }
-%end
 
-%hook YTPlayabilityResolutionOverlayViewControllerImpl
-- (void)showError {
-    YouModLogError(@"Playability error overlay displayed");
-    if (IS_ENABLED(DebugMode)) YouModToast(@"Playability error overlay");
-    %orig;
+static id (*orig_YTPlayerViewController_loadWithPlayerTransition)(id, SEL, id, id);
+static id hook_YTPlayerViewController_loadWithPlayerTransition(id self, SEL _cmd, id arg1, id arg2) {
+    id result = orig_YTPlayerViewController_loadWithPlayerTransition(self, _cmd, arg1, arg2);
+    NSString *videoID = [self valueForKey:@"_contentVideoID"];
+    if (videoID)
+        YouModLogInfo([NSString stringWithFormat:@"Playing video: %@", videoID]);
+    return result;
 }
-%end
 
-%hook YTPlayabilityResolutionUserActionRequest
-- (id)initWithCoder:(NSCoder *)coder {
-    self = %orig;
-    if (self) {
-        YouModLogInfo(@"Playability resolution request created");
+static void YouModInitRetryHooks(void) {
+    // Try to hook dynamic methods; retry until resolved
+    static int retries = 0;
+    BOOL allDone = YES;
+    
+    Class ytpr = NSClassFromString(@"YTPlayerResponse");
+    if (ytpr) {
+        SEL sel = @selector(playabilityStatus);
+        YouModForceResolve(ytpr, sel);
+        Method m = class_getInstanceMethod(ytpr, sel);
+        if (m && !orig_YTPlayerResponse_playabilityStatus) {
+            orig_YTPlayerResponse_playabilityStatus = (void *)method_getImplementation(m);
+            method_setImplementation(m, (IMP)hook_YTPlayerResponse_playabilityStatus);
+            YouModLogInfo(@"Hooked YTPlayerResponse.playabilityStatus");
+        }
+        if (!orig_YTPlayerResponse_playabilityStatus) allDone = NO;
     }
-    return self;
-}
-%end
-
-%hook YTPlaybackData
-- (id)initWithCoder:(NSCoder *)coder {
-    self = %orig;
-    if (self) {
-        YouModLogInfo(@"PlaybackData loaded");
+    
+    // YTPlayerViewController - try different selector signatures
+    Class ytpvc = NSClassFromString(@"YTPlayerViewController");
+    if (ytpvc) {
+        SEL sel = @selector(loadWithPlayerTransition:playbackConfig:);
+        YouModForceResolve(ytpvc, sel);
+        Method m = class_getInstanceMethod(ytpvc, sel);
+        if (!m) {
+            // Try alternative signatures
+            NSArray *alts = @[@"loadWithPlayerTransition:", @"loadWithPlayerTransition:playerTransition:", @"loadWithPlaylistTransition:playbackConfig:"];
+            for (NSString *altName in alts) {
+                SEL altSel = NSSelectorFromString(altName);
+                m = class_getInstanceMethod(ytpvc, altSel);
+                if (m) {
+                    sel = altSel;
+                    break;
+                }
+            }
+        }
+        if (m && !orig_YTPlayerViewController_loadWithPlayerTransition) {
+            orig_YTPlayerViewController_loadWithPlayerTransition = (void *)method_getImplementation(m);
+            method_setImplementation(m, (IMP)hook_YTPlayerViewController_loadWithPlayerTransition);
+            YouModLogInfo([NSString stringWithFormat:@"Hooked YTPlayerViewController.%@", NSStringFromSelector(sel)]);
+        }
+        if (!orig_YTPlayerViewController_loadWithPlayerTransition) allDone = NO;
     }
-    return self;
+    
+    if (!allDone && retries < 5) {
+        retries++;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            YouModInitRetryHooks();
+        });
+    }
 }
-%end
+
+%ctor {
+    YouModLogInfo(@"YouMod debug initialized");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        YouModDiagnostic();
+        YouModInitRetryHooks();
+    });
+}
 
 @implementation UIViewController (YouModDebug)
 - (void)YouModShareLogs {
@@ -281,6 +312,14 @@ static void YouModDiagnostic(void) {
 %ctor {
     [NSURLProtocol registerClass:[_YouModLoggingURLProtocol class]];
 }
+
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    YouModLogError(@"Something went wrong - confirm alert");
+    if (IS_ENABLED(DebugMode)) YouModToast(@"🚨 Something went wrong!");
+    %orig;
+}
+%end
 
 %hook YTPlayerViewController
 - (void)loadWithPlayerTransition:(id)arg1 playbackConfig:(id)arg2 {
