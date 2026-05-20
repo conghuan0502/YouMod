@@ -21,7 +21,8 @@ static NSString *repl_YTIClientInfo_clientVersion(id self, SEL _cmd) {
         }
         Method m = class_getInstanceMethod(cls, @selector(clientVersion));
         if (!m) {
-            [(id)[[cls alloc] init] clientVersion];
+            id dummy = [[cls alloc] init];
+            [dummy clientVersion];
             m = class_getInstanceMethod(cls, @selector(clientVersion));
         }
         if (m) {
