@@ -80,6 +80,31 @@ static void YouModToast(NSString *msg) {
 
 %ctor {
     YouModLogInfo(@"YouMod debug initialized");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSDictionary *checks = @{
+            @"YTIPlayabilityStatusEnum": @[@"isPlayable"],
+            @"YTPlayerResponse": @[@"playabilityStatus"],
+            @"YTPlaybackData": @[@"initWithCoder:"],
+            @"YTPlayerViewController": @[@"loadWithPlayerTransition:playbackConfig:"],
+            @"YTPlayabilityResolutionOverlayViewControllerImpl": @[@"showError"],
+            @"YTPlayabilityResolutionUserActionRequest": @[@"initWithCoder:"],
+            @"YTPlayabilityResolutionUserActionUIController": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
+            @"YTPlayabilityResolutionUserActionUIControllerImpl": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
+        };
+        for (NSString *clsName in checks) {
+            Class cls = NSClassFromString(clsName);
+            NSMutableString *line = [NSMutableString stringWithFormat:@"🔍 %@: %@", clsName, cls ? @"EXISTS" : @"MISSING"];
+            if (cls) {
+                for (NSString *selName in checks[clsName]) {
+                    SEL sel = NSSelectorFromString(selName);
+                    BOOL responds = [cls instancesRespondToSelector:sel] || [cls respondsToSelector:sel];
+                    Method m = class_getInstanceMethod(cls, sel);
+                    line = [line stringByAppendingFormat:@", %@: responds=%d method=%p", selName, responds, m];
+                }
+            }
+            YouModLogInfo(line);
+        }
+    });
 }
 
 %hook YTIPlayabilityStatusEnum
