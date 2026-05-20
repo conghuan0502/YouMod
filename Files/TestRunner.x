@@ -295,7 +295,11 @@ static NSString *StatusString(YouModTestStatus status) {
 
 @end
 
-@implementation UIViewController (YouModTests)
+@interface YouModTestViewController : UIViewController
+- (instancetype)initWithRunner:(YouModTestRunner *)runner;
+@end
+
+@implementation UIViewController (YouModDebug)
 
 - (void)YouModRunTests {
     YouModTestRunner *runner = [[YouModTestRunner alloc] init];

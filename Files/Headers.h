@@ -301,4 +301,5 @@ typedef NS_ENUM(NSUInteger, GestureSection) {
 
 @interface UIViewController (YouModDebug)
 - (void)YouModShareLogs;
+- (void)YouModRunTests;
 @end
