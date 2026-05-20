@@ -510,6 +510,28 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
             BASIC_SWITCH(LOC(@"HIDE_PLAY_IN_NEXT_QUEUE"), LOC(@"HIDE_PLAY_IN_NEXT_QUEUE_DESC"), HidePlayInNextQueue),
             BASIC_SWITCH(LOC(@"HIDE_LIKE_DISLIKE_VOTES"), LOC(@"HIDE_LIKE_DISLIKE_VOTES_DESC"), HideLikeDislikeVotes),
             BASIC_SWITCH(LOC(@"DEBUG_MODE"), LOC(@"DEBUG_MODE_DESC"), DebugMode),
+            [YTSettingsSectionItemClass itemWithTitle:LOC(@"VIEW_LOGS")
+                titleDescription:LOC(@"VIEW_LOGS_DESC")
+                accessibilityIdentifier:nil
+                detailTextBlock:nil
+                selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                    NSString *logs = YouModGetDebugLogs();
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:LOC(@"VIEW_LOGS") message:logs preferredStyle:UIAlertControllerStyleAlert];
+                    [alert addAction:[UIAlertAction actionWithTitle:LOC(@"CLOSE") style:UIAlertActionStyleCancel handler:nil]];
+                    [settingsViewController presentViewController:alert animated:YES completion:nil];
+                    return YES;
+                }
+            ],
+            [YTSettingsSectionItemClass itemWithTitle:LOC(@"CLEAR_LOGS")
+                titleDescription:LOC(@"CLEAR_LOGS_DESC")
+                accessibilityIdentifier:nil
+                detailTextBlock:nil
+                selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                    YouModClearDebugLogs();
+                    [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"LOGS_CLEARED") firstResponder:[self parentResponder]] send];
+                    return YES;
+                }
+            ],
         ];        
         YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"MISCELLANEOUS") pickerSectionTitle:nil rows:rows selectedItemIndex:0 parentResponder:[self parentResponder]];
         [settingsViewController pushViewController:picker];

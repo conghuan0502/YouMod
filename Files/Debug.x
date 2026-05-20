@@ -1,13 +1,50 @@
 #import "Headers.h"
 
+static NSMutableArray *YouModLogs;
+static NSString *YouModLogPath(void) {
+    static NSString *path;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSString *docs = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+        path = [docs stringByAppendingPathComponent:@"YouModDebug.log"];
+    });
+    return path;
+}
+
+static void YouModWriteLog(NSString *msg) {
+    if (!YouModLogs) YouModLogs = [NSMutableArray array];
+    [YouModLogs addObject:msg];
+    NSString *line = [NSString stringWithFormat:@"[%@] %@\n", [NSDate date], msg];
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:YouModLogPath()];
+        if (!fh) {
+            [line writeToFile:YouModLogPath() atomically:YES encoding:NSUTF8StringEncoding error:nil];
+        } else {
+            [fh seekToEndOfFile];
+            [fh writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
+            [fh closeFile];
+        }
+    });
+}
+
+NSString *YouModGetDebugLogs(void) {
+    return [NSString stringWithContentsOfFile:YouModLogPath() encoding:NSUTF8StringEncoding error:nil] ?: @"(no logs)";
+}
+
+void YouModClearDebugLogs(void) {
+    [[NSFileManager defaultManager] removeItemAtPath:YouModLogPath() error:nil];
+    [YouModLogs removeAllObjects];
+}
+
 static void YouModDebugLog(NSString *msg) {
     if (!IS_ENABLED(DebugMode)) return;
     NSLog(@"[YouMod Debug] %@", msg);
+    YouModWriteLog(msg);
 }
 
 static void YouModDebugToast(NSString *msg) {
-    YouModDebugLog(msg);
     if (!IS_ENABLED(DebugMode)) return;
+    YouModDebugLog(msg);
     Class toastClass = %c(YTToastResponderEvent);
     if (toastClass) {
         id event = [toastClass eventWithMessage:[@"⚠️ Debug: " stringByAppendingString:msg] firstResponder:nil];

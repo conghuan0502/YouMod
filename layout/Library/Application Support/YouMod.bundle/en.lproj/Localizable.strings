@@ -253,3 +253,9 @@
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Hide messages that pop up when you like/dislike videos.";
 "DEBUG_MODE" = "Debug Mode";
 "DEBUG_MODE_DESC" = "Log detailed playback errors (something went wrong, no stream, etc.) to the system console.";
+"VIEW_LOGS" = "View Debug Logs";
+"VIEW_LOGS_DESC" = "Show captured debug logs.";
+"CLEAR_LOGS" = "Clear Debug Logs";
+"CLEAR_LOGS_DESC" = "Delete all captured debug logs.";
+"CLOSE" = "Close";
+"LOGS_CLEARED" = "Debug logs cleared.";
