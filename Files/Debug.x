@@ -80,24 +80,9 @@ static void YouModToast(NSString *msg) {
 
 %ctor {
     YouModLogInfo(@"YouMod debug initialized");
-    dispatch_async(dispatch_get_main_queue(), ^{
-        NSArray *keywords = @[@"Playability", @"PlaybackData", @"PlayerResponse", @"ClientInfo", @"InnerTube", @"PlayabilityResolution"];
-        unsigned int count;
-        Class *classes = objc_copyClassList(&count);
-        for (unsigned int i = 0; i < count; i++) {
-            NSString *name = NSStringFromClass(classes[i]);
-            for (NSString *kw in keywords) {
-                if ([name containsString:kw]) {
-                    YouModLogInfo([NSString stringWithFormat:@"Found class: %@", name]);
-                    break;
-                }
-            }
-        }
-        free(classes);
-    });
 }
 
-%hook YTIPlayabilityStatus
+%hook YTIPlayabilityStatusEnum
 - (BOOL)isPlayable {
     BOOL playable = %orig;
     if (!playable) {
@@ -143,29 +128,21 @@ static void YouModToast(NSString *msg) {
 }
 %end
 
-%hook YTPlayabilityResolutionUserActionUIController
-- (void)showConfirmAlert {
-    YouModLogError(@"Something went wrong - confirm alert shown");
-    if (IS_ENABLED(DebugMode)) YouModToast(@"Something went wrong - confirm alert");
-    %orig;
-}
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
 - (void)showError {
-    YouModLogError(@"Playability error view displayed");
-    if (IS_ENABLED(DebugMode)) YouModToast(@"Playability error view");
+    YouModLogError(@"Playability error overlay displayed");
+    if (IS_ENABLED(DebugMode)) YouModToast(@"Playability error overlay");
     %orig;
 }
 %end
 
-%hook YTPlayabilityResolutionUserActionUIControllerImpl
-- (void)showConfirmAlert {
-    YouModLogError(@"Something went wrong - confirm alert shown");
-    if (IS_ENABLED(DebugMode)) YouModToast(@"Something went wrong - confirm alert");
-    %orig;
-}
-- (void)showError {
-    YouModLogError(@"Playability error view displayed");
-    if (IS_ENABLED(DebugMode)) YouModToast(@"Playability error view");
-    %orig;
+%hook YTPlayabilityResolutionUserActionRequest
+- (id)initWithCoder:(NSCoder *)coder {
+    self = %orig;
+    if (self) {
+        YouModLogInfo(@"Playability resolution request created");
+    }
+    return self;
 }
 %end
 
