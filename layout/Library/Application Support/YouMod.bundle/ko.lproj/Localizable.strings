@@ -250,3 +250,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "더보기 메뉴에서 '대기열 다음으로 재생(예약)' 옵션을 안 보이게 지웁니다.";
 "HIDE_LIKE_DISLIKE_VOTES" = "좋아요/싫어요 이펙트 끄기";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "좋아요나 싫어요 버튼을 눌렀을 때 뿅 하고 나타나는 메시지나 화려한 애니메이션 효과를 숨깁니다.";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality.";

@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "Cache l'option 'Lire ensuite dans la file' dans le menu contextuel.";
 "HIDE_LIKE_DISLIKE_VOTES" = "Cacher les votes J'aime/Je n'aime pas";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Cache les messages qui apparaissent lorsque tu aimes ou n'aimes pas des vidéos.";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality.";

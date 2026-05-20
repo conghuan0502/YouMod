@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "ซ่อน 'เล่นถัดไป' ในเมนู 3 จุด";
 "HIDE_LIKE_DISLIKE_VOTES" = "ซ่อนโหวดชอบ/ไม่ชอบ";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "ซ่อนกล่องโหวดชอบ/ไม่ชอบ";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality.";

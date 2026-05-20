@@ -267,3 +267,5 @@
 "DISABLE_AD_COORDINATOR_DESC" = "Disable ad coordinator hook. Turn ON if videos fail to play (Something went wrong).";
 "SPOOF_CLIENT_VERSION" = "Spoof Client Version";
 "SPOOF_CLIENT_VERSION_DESC" = "Report a modern YouTube version (21.20.4) to the server. May help bypass version-based blocks.";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality and detect playback issues.";

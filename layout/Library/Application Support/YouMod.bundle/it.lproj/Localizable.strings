@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "Nasconde l'opzione 'Riproduci come successivo nella coda' nel menu a comparsa.";
 "HIDE_LIKE_DISLIKE_VOTES" = "Nascondi voti mi piace/non mi piace";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Nasconde i messaggi che appaiono quando metti mi piace/non mi piace ai video.";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality.";

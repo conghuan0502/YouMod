@@ -255,3 +255,17 @@
 "DISABLE_AD_COORDINATOR_DESC" = "Tắt hook ad coordinator. Bật nếu video không phát được (Something went wrong).";
 "SPOOF_CLIENT_VERSION" = "Giả mạo phiên bản";
 "SPOOF_CLIENT_VERSION_DESC" = "Báo cáo phiên bản YouTube mới (21.20.4) cho máy chủ. Có thể giúp vượt qua chặn dựa trên phiên bản.";
+"DEBUG_MODE" = "Chế độ gỡ lỗi";
+"DEBUG_MODE_DESC" = "Ghi lại lỗi phát video chi tiết (Something went wrong, không có luồng, v.v.) vào bảng điều khiển hệ thống.";
+"VIEW_LOGS" = "Xem nhật ký gỡ lỗi";
+"VIEW_LOGS_DESC" = "Hiển thị nhật ký gỡ lỗi đã ghi (%d mục).";
+"CLEAR_LOGS" = "Xóa nhật ký gỡ lỗi";
+"CLEAR_LOGS_DESC" = "Xóa tất cả nhật ký gỡ lỗi đã ghi.";
+"CLOSE" = "Đóng";
+"LOGS_CLEARED" = "Đã xóa nhật ký gỡ lỗi.";
+"NETWORK_LOGGING" = "Ghi nhật ký mạng";
+"NETWORK_LOGGING_DESC" = "Ghi lại tất cả yêu cầu và phản hồi HTTP/HTTPS (URL, mã trạng thái, lỗi).";
+"BLOCK_DOMAINS" = "Chặn tên miền theo dõi";
+"BLOCK_DOMAINS_DESC" = "Chặn các tên miền theo dõi/lạm dụng của Google (iosantiabuse, play, clients3, s.youtube).";
+"RUN_TESTS" = "Chạy chẩn đoán";
+"RUN_TESTS_DESC" = "Chạy kiểm tra tự động để kiểm tra chức năng tweak và phát hiện lỗi phát video.";

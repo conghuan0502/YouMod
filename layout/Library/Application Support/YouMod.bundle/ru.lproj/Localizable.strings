@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "Скрыть пункт «Воспроизвести следующим в очереди» во всплывающем меню.";
 "HIDE_LIKE_DISLIKE_VOTES" = "Скрыть уведомления о лайках/дизлайках";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Скрыть сообщения, которые появляются, когда вы ставите лайк или дизлайк видео.";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality.";

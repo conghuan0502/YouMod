@@ -549,6 +549,17 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
             BASIC_SWITCH(LOC(@"BLOCK_DOMAINS"), LOC(@"BLOCK_DOMAINS_DESC"), BlockDomains),
             BASIC_SWITCH(LOC(@"DISABLE_AD_COORDINATOR"), LOC(@"DISABLE_AD_COORDINATOR_DESC"), DisableAdCoordinatorHooks),
             BASIC_SWITCH(LOC(@"SPOOF_CLIENT_VERSION"), LOC(@"SPOOF_CLIENT_VERSION_DESC"), SpoofClientVersion),
+            [YTSettingsSectionItemClass itemWithTitle:LOC(@"RUN_TESTS")
+                titleDescription:LOC(@"RUN_TESTS_DESC")
+                accessibilityIdentifier:nil
+                detailTextBlock:nil
+                selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
+                    UIViewController *vc = settingsViewController;
+                    if (vc.presentedViewController) vc = vc.presentedViewController;
+                    [vc YouModRunTests];
+                    return YES;
+                }
+            ],
         ];        
         YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"MISCELLANEOUS") pickerSectionTitle:nil rows:rows selectedItemIndex:0 parentResponder:[self parentResponder]];
         [settingsViewController pushViewController:picker];

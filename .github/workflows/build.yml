@@ -91,6 +91,12 @@ jobs:
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
           mv packages/*.deb ${{ github.workspace }}
 
+      - name: Run build validation
+        run: |
+          cd YouMod
+          chmod +x scripts/test-build.sh
+          bash scripts/test-build.sh
+
       - name: Upload the tweak .deb(s)
         uses: actions/upload-artifact@v7
         with:

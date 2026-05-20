@@ -251,3 +251,5 @@
 "HIDE_PLAY_IN_NEXT_QUEUE_DESC" = "Hide the 'Play next in queue' option in the flyout menu.";
 "HIDE_LIKE_DISLIKE_VOTES" = "Hide like/dislike votes";
 "HIDE_LIKE_DISLIKE_VOTES_DESC" = "Hide messages that pop up when you like/dislike videos.";
+"RUN_TESTS" = "Run Diagnostics";
+"RUN_TESTS_DESC" = "Run automated tests to check tweak functionality.";
