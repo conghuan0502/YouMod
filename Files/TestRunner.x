@@ -88,6 +88,7 @@ static NSString *StatusString(YouModTestStatus status) {
 
 - (void)runHookTests {
     NSTimeInterval start;
+    NSTimeInterval elapsed;
 
     // Test 1: Check if core classes exist
     start = CACurrentMediaTime();
@@ -131,9 +132,7 @@ static NSString *StatusString(YouModTestStatus status) {
     if (ytLocalPlayback) {
         Method m = class_getInstanceMethod(ytLocalPlayback, @selector(createAdsPlaybackCoordinator));
         if (m) {
-            IMP imp = method_getImplementation(m);
-            // Check if the implementation is a known "return nil" pattern
-            // We can't easily check this at runtime, so we just verify the method exists
+            (void)method_getImplementation(m);
         }
     }
     elapsed = CACurrentMediaTime() - start;
@@ -171,6 +170,7 @@ static NSString *StatusString(YouModTestStatus status) {
 
 - (void)runConfigTests {
     NSTimeInterval start;
+    NSTimeInterval elapsed;
 
     // Test 6: Check UserDefaults
     start = CACurrentMediaTime();
@@ -220,6 +220,7 @@ static NSString *StatusString(YouModTestStatus status) {
 
 - (void)runPlaybackTests {
     NSTimeInterval start;
+    NSTimeInterval elapsed;
 
     // Test 9: Check if YouTube app is responsive
     start = CACurrentMediaTime();
