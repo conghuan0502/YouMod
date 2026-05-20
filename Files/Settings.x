@@ -509,6 +509,7 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
             BASIC_SWITCH(LOC(@"HIDE_STARTUP_ANIMATIONS"), LOC(@"HIDE_STARTUP_ANIMATIONS_DESC"), HideStartupAni),
             BASIC_SWITCH(LOC(@"HIDE_PLAY_IN_NEXT_QUEUE"), LOC(@"HIDE_PLAY_IN_NEXT_QUEUE_DESC"), HidePlayInNextQueue),
             BASIC_SWITCH(LOC(@"HIDE_LIKE_DISLIKE_VOTES"), LOC(@"HIDE_LIKE_DISLIKE_VOTES_DESC"), HideLikeDislikeVotes),
+            BASIC_SWITCH(LOC(@"DEBUG_MODE"), LOC(@"DEBUG_MODE_DESC"), DebugMode),
         ];        
         YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"MISCELLANEOUS") pickerSectionTitle:nil rows:rows selectedItemIndex:0 parentResponder:[self parentResponder]];
         [settingsViewController pushViewController:picker];

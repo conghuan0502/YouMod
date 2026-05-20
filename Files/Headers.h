@@ -156,6 +156,8 @@
 #define HidePlayInNextQueue @"YouModHidePlayInNextQueue"
 #define HideLikeDislikeVotes @"YouModHideLikeDislikeVotes"
 // #define CustomStartup @"YouModUseCustomVideoStartup"
+// Debug
+#define DebugMode @"YouModDebugMode"
 
 #define YT_BUNDLE_ID @"com.google.ios.youtube"
 #define YT_NAME @"YouTube"

@@ -19,10 +19,8 @@ static NSArray *blockedDomains;
 }
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request {
-    if ([NSURLProtocol propertyForKey:@"YouModBlocked" inRequest:request]) {
-        return NO;
-    }
     NSString *host = request.URL.host.lowercaseString;
+    if (host.length == 0) return NO;
     for (NSString *domain in blockedDomains) {
         if ([host containsString:domain]) {
             return YES;
@@ -36,9 +34,7 @@ static NSArray *blockedDomains;
 }
 
 - (void)startLoading {
-    NSMutableURLRequest *request = [self.request mutableCopy];
-    [NSURLProtocol setProperty:@YES forKey:@"YouModBlocked" inRequest:request];
-    NSError *error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCannotConnectToHost userInfo:nil];
+    NSError *error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCannotConnectToHost userInfo:@{NSLocalizedDescriptionKey: @"Blocked by YouMod"}];
     [self.client URLProtocol:self didFailWithError:error];
 }
 
