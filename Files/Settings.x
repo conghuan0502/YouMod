@@ -515,10 +515,17 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
                 accessibilityIdentifier:nil
                 detailTextBlock:nil
                 selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
-                    NSString *logs = YouModGetDebugLogs();
-                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:LOC(@"VIEW_LOGS") message:logs preferredStyle:UIAlertControllerStyleAlert];
-                    [alert addAction:[UIAlertAction actionWithTitle:LOC(@"CLOSE") style:UIAlertActionStyleCancel handler:nil]];
-                    [settingsViewController presentViewController:alert animated:YES completion:nil];
+                    UIViewController *logVC = [[UIViewController alloc] init];
+                    logVC.title = LOC(@"VIEW_LOGS");
+                    UITextView *textView = [[UITextView alloc] initWithFrame:logVC.view.bounds];
+                    textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                    textView.editable = NO;
+                    textView.font = [UIFont fontWithName:@"Menlo" size:11];
+                    textView.text = YouModGetDebugLogs();
+                    [logVC.view addSubview:textView];
+                    UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:logVC];
+                    logVC.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:LOC(@"CLOSE") style:UIBarButtonItemStyleDone target:logVC action:@selector(dismissViewControllerAnimated:completion:)];
+                    [settingsViewController presentViewController:nav animated:YES completion:nil];
                     return YES;
                 }
             ],
@@ -528,7 +535,9 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
                 detailTextBlock:nil
                 selectBlock:^BOOL (YTSettingsCell *cell, NSUInteger arg1) {
                     YouModClearDebugLogs();
-                    [[%c(YTToastResponderEvent) eventWithMessage:LOC(@"LOGS_CLEARED") firstResponder:[self parentResponder]] send];
+                    Class toast = %c(YTToastResponderEvent);
+                    if (toast)
+                        [[toast eventWithMessage:LOC(@"LOGS_CLEARED") firstResponder:[self parentResponder]] send];
                     return YES;
                 }
             ],

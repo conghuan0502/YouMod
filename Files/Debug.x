@@ -1,5 +1,7 @@
 #import "Headers.h"
 
+#define MAX_LOG_ENTRIES 200
+
 static NSMutableArray *YouModLogs;
 static NSString *YouModLogPath(void) {
     static NSString *path;
@@ -14,6 +16,8 @@ static NSString *YouModLogPath(void) {
 static void YouModWriteLog(NSString *msg) {
     if (!YouModLogs) YouModLogs = [NSMutableArray array];
     [YouModLogs addObject:msg];
+    if (YouModLogs.count > MAX_LOG_ENTRIES)
+        [YouModLogs removeObjectsInRange:NSMakeRange(0, YouModLogs.count - MAX_LOG_ENTRIES)];
     NSString *line = [NSString stringWithFormat:@"[%@] %@\n", [NSDate date], msg];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
         NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:YouModLogPath()];
@@ -28,7 +32,10 @@ static void YouModWriteLog(NSString *msg) {
 }
 
 NSString *YouModGetDebugLogs(void) {
-    return [NSString stringWithContentsOfFile:YouModLogPath() encoding:NSUTF8StringEncoding error:nil] ?: @"(no logs)";
+    NSString *fileLogs = [NSString stringWithContentsOfFile:YouModLogPath() encoding:NSUTF8StringEncoding error:nil];
+    if (fileLogs.length) return fileLogs;
+    if (YouModLogs.count) return [YouModLogs componentsJoinedByString:@"\n"];
+    return @"(no logs)";
 }
 
 void YouModClearDebugLogs(void) {

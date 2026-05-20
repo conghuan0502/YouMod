@@ -1,45 +1,28 @@
 #import "Headers.h"
-
-@interface _YouModBlockedURLProtocol : NSURLProtocol
-@end
+#import <substrate.h>
+#import <netdb.h>
 
 static NSArray *blockedDomains;
+static int (*orig_getaddrinfo)(const char *, const char *, const struct addrinfo *, struct addrinfo **);
 
-@implementation _YouModBlockedURLProtocol
-
-+ (void)initialize {
-    if (self == [_YouModBlockedURLProtocol class]) {
-        blockedDomains = @[
-            @"play.googleapis.com",
-            @"s.youtube.com"
-        ];
-    }
-}
-
-+ (BOOL)canInitWithRequest:(NSURLRequest *)request {
-    NSString *host = request.URL.host.lowercaseString;
-    if (host.length == 0) return NO;
-    for (NSString *domain in blockedDomains) {
-        if ([host containsString:domain]) {
-            return YES;
+static int hooked_getaddrinfo(const char *nodename, const char *servname, const struct addrinfo *hints, struct addrinfo **res) {
+    if (nodename) {
+        NSString *host = [NSString stringWithUTF8String:nodename];
+        for (NSString *domain in blockedDomains) {
+            if ([host containsString:domain]) {
+                return EAI_NONAME;
+            }
         }
     }
-    return NO;
+    return orig_getaddrinfo(nodename, servname, hints, res);
 }
-
-+ (NSURLRequest *)canonicalRequestForRequest:(NSURLRequest *)request {
-    return request;
-}
-
-- (void)startLoading {
-    NSError *error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCannotConnectToHost userInfo:@{NSLocalizedDescriptionKey: @"Blocked by YouMod"}];
-    [self.client URLProtocol:self didFailWithError:error];
-}
-
-- (void)stopLoading {}
-
-@end
 
 %ctor {
-    [NSURLProtocol registerClass:[_YouModBlockedURLProtocol class]];
+    blockedDomains = @[
+        @"iosantiabuse-pa.googleapis.com",
+        @"play.googleapis.com",
+        @"clients3.googleapis.com",
+        @"s.youtube.com"
+    ];
+    MSHookFunction((void *)&getaddrinfo, (void *)&hooked_getaddrinfo, (void **)&orig_getaddrinfo);
 }
