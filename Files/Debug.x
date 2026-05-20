@@ -99,7 +99,7 @@ static void YouModToast(NSString *msg) {
                     SEL sel = NSSelectorFromString(selName);
                     BOOL responds = [cls instancesRespondToSelector:sel] || [cls respondsToSelector:sel];
                     Method m = class_getInstanceMethod(cls, sel);
-                    line = [line stringByAppendingFormat:@", %@: responds=%d method=%p", selName, responds, m];
+                    [line appendFormat:@", %@: responds=%d method=%p", selName, responds, m];
                 }
             }
             YouModLogInfo(line);
