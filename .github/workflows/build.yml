@@ -89,11 +89,10 @@ jobs:
           make clean package DEBUG=0 FINALPACKAGE=1
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
-          mv packages/*.deb ${{ github.workspace }}
 
       - name: Run build validation
+        working-directory: YouMod
         run: |
-          cd YouMod
           chmod +x scripts/test-build.sh
           bash scripts/test-build.sh
 
@@ -101,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
          name: YouMod v${{ env.YOUMOD_VERSION }}
-         path: ${{ github.workspace }}/*.deb
+         path: YouMod/packages/*.deb
          if-no-files-found: error
          overwrite: true
 

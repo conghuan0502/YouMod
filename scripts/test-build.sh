@@ -39,6 +39,14 @@ info() {
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PACKAGES_DIR="$PROJECT_DIR/packages"
 
+# If packages not found, try current directory (for CI where cwd may differ)
+if [ ! -d "$PACKAGES_DIR" ]; then
+    PACKAGES_DIR="$PROJECT_DIR/YouMod/packages"
+    if [ ! -d "$PACKAGES_DIR" ]; then
+        PACKAGES_DIR="./packages"
+    fi
+fi
+
 info "Looking for .deb packages in $PACKAGES_DIR"
 
 if [ ! -d "$PACKAGES_DIR" ]; then
