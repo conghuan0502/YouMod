@@ -46,6 +46,8 @@ static void YouModWriteLog(YouModLogLevel level, NSString *msg) {
 
 NSString *YouModGetDebugLogs(void) {
     NSString *fileLogs = [NSString stringWithContentsOfFile:YouModLogPath() encoding:NSUTF8StringEncoding error:nil];
+    if (YouModLogs.count && (!fileLogs.length || YouModLogs.count > 50))
+        return [YouModLogs componentsJoinedByString:@"\n"];
     if (fileLogs.length) return fileLogs;
     if (YouModLogs.count) return [YouModLogs componentsJoinedByString:@"\n"];
     return @"(no logs)";
@@ -78,32 +80,59 @@ static void YouModToast(NSString *msg) {
     }
 }
 
+static void YouModDiagnostic(void) {
+    // Use objc_copyClassList to find all YT* classes matching our hooks
+    NSDictionary *checks = @{
+        @"YTIPlayabilityStatusEnum": @[@"isPlayable"],
+        @"YTPlayerResponse": @[@"playabilityStatus"],
+        @"YTPlaybackData": @[@"initWithCoder:"],
+        @"YTPlayerViewController": @[@"loadWithPlayerTransition:playbackConfig:"],
+        @"YTPlayabilityResolutionOverlayViewControllerImpl": @[@"showError"],
+        @"YTPlayabilityResolutionUserActionRequest": @[@"initWithCoder:"],
+        @"YTPlayabilityResolutionUserActionUIController": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
+        @"YTPlayabilityResolutionUserActionUIControllerImpl": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
+    };
+    
+    unsigned int count;
+    Class *classes = objc_copyClassList(&count);
+    NSMutableSet *registeredNames = [NSMutableSet set];
+    for (unsigned int i = 0; i < count; i++)
+        [registeredNames addObject:NSStringFromClass(classes[i])];
+    
+    // Also check for similar class names that might match
+    NSMutableDictionary *nearMisses = [NSMutableDictionary dictionary];
+    for (NSString *name in registeredNames) {
+        for (NSString *key in checks) {
+            if ([name containsString:key] && ![name isEqualToString:key]) {
+                nearMisses[key] = name;
+            }
+        }
+    }
+    
+    for (NSString *clsName in checks) {
+        Class cls = NSClassFromString(clsName);
+        NSMutableString *line = [NSMutableString stringWithFormat:@"🔍 %@: %@", clsName, cls ? @"EXISTS" : @"MISSING"];
+        if (!cls) {
+            NSString *near = nearMisses[clsName];
+            if (near) [line appendFormat:@" (near match: %@)", near];
+        }
+        if (cls) {
+            for (NSString *selName in checks[clsName]) {
+                SEL sel = NSSelectorFromString(selName);
+                BOOL responds = [cls instancesRespondToSelector:sel] || [cls respondsToSelector:sel];
+                Method m = class_getInstanceMethod(cls, sel);
+                [line appendFormat:@", %@: responds=%d method=%p", selName, responds, m];
+            }
+        }
+        YouModLogInfo(line);
+    }
+    free(classes);
+}
+
 %ctor {
     YouModLogInfo(@"YouMod debug initialized");
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSDictionary *checks = @{
-            @"YTIPlayabilityStatusEnum": @[@"isPlayable"],
-            @"YTPlayerResponse": @[@"playabilityStatus"],
-            @"YTPlaybackData": @[@"initWithCoder:"],
-            @"YTPlayerViewController": @[@"loadWithPlayerTransition:playbackConfig:"],
-            @"YTPlayabilityResolutionOverlayViewControllerImpl": @[@"showError"],
-            @"YTPlayabilityResolutionUserActionRequest": @[@"initWithCoder:"],
-            @"YTPlayabilityResolutionUserActionUIController": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
-            @"YTPlayabilityResolutionUserActionUIControllerImpl": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
-        };
-        for (NSString *clsName in checks) {
-            Class cls = NSClassFromString(clsName);
-            NSMutableString *line = [NSMutableString stringWithFormat:@"🔍 %@: %@", clsName, cls ? @"EXISTS" : @"MISSING"];
-            if (cls) {
-                for (NSString *selName in checks[clsName]) {
-                    SEL sel = NSSelectorFromString(selName);
-                    BOOL responds = [cls instancesRespondToSelector:sel] || [cls respondsToSelector:sel];
-                    Method m = class_getInstanceMethod(cls, sel);
-                    [line appendFormat:@", %@: responds=%d method=%p", selName, responds, m];
-                }
-            }
-            YouModLogInfo(line);
-        }
+        YouModDiagnostic();
     });
 }
 
