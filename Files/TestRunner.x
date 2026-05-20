@@ -18,7 +18,7 @@ typedef NS_ENUM(NSInteger, YouModTestStatus) {
 @implementation YouModTestItem
 @end
 
-@interface YouModTestViewController : UIViewController
+@interface YouModTestViewController : UIViewController <UITableViewDelegate, UITableViewDataSource>
 - (instancetype)initWithRunner:(id)runner;
 @end
 
@@ -309,7 +309,7 @@ static NSString *StatusIcon(YouModTestStatus status) {
     self.summaryLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.summaryLabel];
 
-    self.spinner = [[UIActivityIndicatorView alloc] initWithStyle:UIActivityIndicatorViewStyleMedium];
+    self.spinner = [[UIActivityIndicatorView alloc] init];
     self.spinner.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.spinner];
 
