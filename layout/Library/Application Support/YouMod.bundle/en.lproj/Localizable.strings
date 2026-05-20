@@ -261,3 +261,5 @@
 "LOGS_CLEARED" = "Debug logs cleared.";
 "NETWORK_LOGGING" = "Log Network Requests";
 "NETWORK_LOGGING_DESC" = "Log all HTTP/HTTPS requests and responses (URL, status code, errors).";
+"BLOCK_DOMAINS" = "Block Tracking Domains";
+"BLOCK_DOMAINS_DESC" = "Block Google tracking/abuse domains (iosantiabuse, play, clients3, s.youtube).";

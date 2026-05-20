@@ -159,6 +159,7 @@
 // Debug
 #define DebugMode @"YouModDebugMode"
 #define NetworkLogging @"YouModNetworkLogging"
+#define BlockDomains @"YouModBlockDomains"
 extern NSString *YouModGetDebugLogs(void);
 extern NSInteger YouModGetLogCount(void);
 extern void YouModClearDebugLogs(void);

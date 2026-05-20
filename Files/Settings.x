@@ -546,6 +546,7 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
                 }
             ],
             BASIC_SWITCH(LOC(@"NETWORK_LOGGING"), LOC(@"NETWORK_LOGGING_DESC"), NetworkLogging),
+            BASIC_SWITCH(LOC(@"BLOCK_DOMAINS"), LOC(@"BLOCK_DOMAINS_DESC"), BlockDomains),
         ];        
         YTSettingsPickerViewController *picker = [[%c(YTSettingsPickerViewController) alloc] initWithNavTitle:LOC(@"MISCELLANEOUS") pickerSectionTitle:nil rows:rows selectedItemIndex:0 parentResponder:[self parentResponder]];
         [settingsViewController pushViewController:picker];

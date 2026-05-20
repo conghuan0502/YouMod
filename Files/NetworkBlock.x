@@ -19,6 +19,7 @@ static NSArray *blockedDomains;
 }
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request {
+    if (!IS_ENABLED(BlockDomains)) return NO;
     NSString *host = request.URL.host.lowercaseString;
     if (host.length == 0) return NO;
     for (NSString *domain in blockedDomains) {

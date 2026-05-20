@@ -181,22 +181,11 @@ static void YouModToast(NSString *msg) {
 
 #pragma mark - Network Logging
 
-@interface _YouModLoggingURLProtocol : NSURLProtocol <NSURLSessionDataDelegate>
-@property (nonatomic, strong) NSURLSessionDataTask *dataTask;
-@property (nonatomic, strong) NSURLResponse *response;
+@interface _YouModLoggingURLProtocol : NSURLProtocol
+@property (nonatomic, strong) NSURLSessionDataTask *task;
 @property (nonatomic, copy) NSString *requestURL;
 @property (nonatomic, copy) NSString *requestMethod;
 @end
-
-static NSURLSession *YouModLoggingSession(void) {
-    static NSURLSession *session;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        session = [NSURLSession sessionWithConfiguration:config];
-    });
-    return session;
-}
 
 @implementation _YouModLoggingURLProtocol
 
@@ -218,35 +207,31 @@ static NSURLSession *YouModLoggingSession(void) {
 
     NSMutableURLRequest *newReq = [self.request mutableCopy];
     [NSURLProtocol setProperty:@YES forKey:@"YouModLogged" inRequest:newReq];
-    self.dataTask = [YouModLoggingSession() dataTaskWithRequest:newReq];
-    [self.dataTask resume];
+
+    __weak typeof(self) weakSelf = self;
+    self.task = [[NSURLSession sharedSession] dataTaskWithRequest:newReq completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) return;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (error) {
+                [strongSelf.client URLProtocol:strongSelf didFailWithError:error];
+                YouModLogWarn([NSString stringWithFormat:@"🌐 ERR %@ - %@", strongSelf.requestURL, error.localizedDescription]);
+            } else {
+                [strongSelf.client URLProtocol:strongSelf didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+                [strongSelf.client URLProtocol:strongSelf didLoadData:data];
+                [strongSelf.client URLProtocolDidFinishLoading:strongSelf];
+                long statusCode = 0;
+                if ([response isKindOfClass:[NSHTTPURLResponse class]])
+                    statusCode = ((NSHTTPURLResponse *)response).statusCode;
+                YouModLogInfo([NSString stringWithFormat:@"🌐 RSP %ld %@ (%lld bytes)", statusCode, strongSelf.requestURL, (long long)data.length]);
+            }
+        });
+    }];
+    [self.task resume];
 }
 
 - (void)stopLoading {
-    [self.dataTask cancel];
-}
-
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
-    self.response = response;
-    [self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
-    completionHandler(NSURLSessionResponseAllow);
-}
-
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
-    [self.client URLProtocol:self didLoadData:data];
-}
-
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
-    if (error) {
-        [self.client URLProtocol:self didFailWithError:error];
-        YouModLogWarn([NSString stringWithFormat:@"🌐 ERR %@ - %@", self.requestURL, error.localizedDescription]);
-    } else {
-        [self.client URLProtocolDidFinishLoading:self];
-        long statusCode = 0;
-        if ([self.response isKindOfClass:[NSHTTPURLResponse class]])
-            statusCode = ((NSHTTPURLResponse *)self.response).statusCode;
-        YouModLogInfo([NSString stringWithFormat:@"🌐 RSP %ld %@ (%lld bytes)", statusCode, self.requestURL, task.countOfBytesReceived]);
-    }
+    [self.task cancel];
 }
 
 @end
@@ -261,6 +246,20 @@ static NSURLSession *YouModLoggingSession(void) {
     NSString *videoID = [self valueForKey:@"_contentVideoID"];
     if (videoID) {
         YouModLogInfo([NSString stringWithFormat:@"Playing video: %@", videoID]);
+    }
+}
+%end
+
+%hook UILabel
+- (void)setText:(NSString *)text {
+    %orig;
+    if (!text) return;
+    if ([text containsString:@"Something went wrong"] || [text containsString:@"Tap to retry"]) {
+        YouModLogWarn([NSString stringWithFormat:@"🚨 Error UI shown: \"%@\"", text]);
+        if (IS_ENABLED(DebugMode)) YouModToast(@"🚨 Something went wrong detected!");
+    }
+    if ([text containsString:@"No internet"] || [text containsString:@"Check connection"]) {
+        YouModLogWarn([NSString stringWithFormat:@"🚨 Network error UI: \"%@\"", text]);
     }
 }
 %end
