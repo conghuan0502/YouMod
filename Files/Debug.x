@@ -81,60 +81,75 @@ static void YouModToast(NSString *msg) {
 }
 
 static void YouModDiagnostic(void) {
-    // Use objc_copyClassList to find all YT* classes matching our hooks
-    NSDictionary *checks = @{
-        @"YTIPlayabilityStatusEnum": @[@"isPlayable"],
-        @"YTPlayerResponse": @[@"playabilityStatus"],
-        @"YTPlaybackData": @[@"initWithCoder:"],
-        @"YTPlayerViewController": @[@"loadWithPlayerTransition:playbackConfig:"],
-        @"YTPlayabilityResolutionOverlayViewControllerImpl": @[@"showError"],
-        @"YTPlayabilityResolutionUserActionRequest": @[@"initWithCoder:"],
-        @"YTPlayabilityResolutionUserActionUIController": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
-        @"YTPlayabilityResolutionUserActionUIControllerImpl": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
-    };
+    if (!IS_ENABLED(DebugMode)) return;
     
-    unsigned int count;
-    Class *classes = objc_copyClassList(&count);
-    NSMutableSet *registeredNames = [NSMutableSet set];
-    for (unsigned int i = 0; i < count; i++)
-        [registeredNames addObject:NSStringFromClass(classes[i])];
-    
-    // Also check for similar class names that might match
-    NSMutableDictionary *nearMisses = [NSMutableDictionary dictionary];
-    for (NSString *name in registeredNames) {
-        for (NSString *key in checks) {
-            if ([name containsString:key] && ![name isEqualToString:key]) {
-                nearMisses[key] = name;
+    @try {
+        NSDictionary *checks = @{
+            @"YTIPlayabilityStatusEnum": @[@"isPlayable"],
+            @"YTPlayerResponse": @[@"playabilityStatus"],
+            @"YTPlaybackData": @[@"initWithCoder:"],
+            @"YTPlayerViewController": @[@"loadWithPlayerTransition:playbackConfig:"],
+            @"YTPlayabilityResolutionOverlayViewControllerImpl": @[@"showError"],
+            @"YTPlayabilityResolutionUserActionRequest": @[@"initWithCoder:"],
+            @"YTPlayabilityResolutionUserActionUIController": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
+            @"YTPlayabilityResolutionUserActionUIControllerImpl": @[@"showConfirmAlert", @"confirmAlertDidPressConfirm"],
+        };
+        
+        unsigned int count;
+        Class *classes = objc_copyClassList(&count);
+        if (!classes) return;
+        
+        NSMutableSet *registeredNames = [NSMutableSet set];
+        for (unsigned int i = 0; i < count; i++) {
+            if (classes[i]) {
+                NSString *name = NSStringFromClass(classes[i]);
+                if (name) [registeredNames addObject:name];
             }
         }
-    }
-    
-    for (NSString *clsName in checks) {
-        Class cls = NSClassFromString(clsName);
-        NSMutableString *line = [NSMutableString stringWithFormat:@"🔍 %@: %@", clsName, cls ? @"EXISTS" : @"MISSING"];
-        if (!cls) {
-            NSString *near = nearMisses[clsName];
-            if (near) [line appendFormat:@" (near match: %@)", near];
-        }
-        if (cls) {
-            for (NSString *selName in checks[clsName]) {
-                SEL sel = NSSelectorFromString(selName);
-                BOOL responds = [cls instancesRespondToSelector:sel] || [cls respondsToSelector:sel];
-                Method m = class_getInstanceMethod(cls, sel);
-                [line appendFormat:@", %@: responds=%d method=%p", selName, responds, m];
+        
+        NSMutableDictionary *nearMisses = [NSMutableDictionary dictionary];
+        for (NSString *name in registeredNames) {
+            for (NSString *key in checks) {
+                if ([name containsString:key] && ![name isEqualToString:key]) {
+                    nearMisses[key] = name;
+                }
             }
         }
-        YouModLogInfo(line);
+        
+        for (NSString *clsName in checks) {
+            Class cls = NSClassFromString(clsName);
+            NSMutableString *line = [NSMutableString stringWithFormat:@"🔍 %@: %@", clsName, cls ? @"EXISTS" : @"MISSING"];
+            if (!cls) {
+                NSString *near = nearMisses[clsName];
+                if (near) [line appendFormat:@" (near match: %@)", near];
+            }
+            if (cls) {
+                for (NSString *selName in checks[clsName]) {
+                    SEL sel = NSSelectorFromString(selName);
+                    if (sel) {
+                        BOOL responds = [cls instancesRespondToSelector:sel] || [cls respondsToSelector:sel];
+                        Method m = class_getInstanceMethod(cls, sel);
+                        [line appendFormat:@", %@: responds=%d method=%p", selName, responds, m];
+                    }
+                }
+            }
+            YouModLogInfo(line);
+        }
+        free(classes);
+    } @catch (NSException *exception) {
+        YouModLogError([NSString stringWithFormat:@"YouModDiagnostic crashed: %@", exception]);
     }
-    free(classes);
 }
 
 static void YouModForceResolve(Class cls, SEL sel) {
-    // Create instance and call selector to trigger GPBMessage dynamic resolution
-    id instance = [cls alloc];
-    if (instance) {
-        (void)[instance init];
-        ((void(*)(id, SEL))objc_msgSend)(instance, sel);
+    if (!cls || !sel) return;
+    @try {
+        id instance = [[cls alloc] init];
+        if (instance && [instance respondsToSelector:sel]) {
+            ((void(*)(id, SEL))objc_msgSend)(instance, sel);
+        }
+    } @catch (NSException *exception) {
+        YouModLogError([NSString stringWithFormat:@"YouModForceResolve crashed: %@", exception]);
     }
 }
 
@@ -170,63 +185,50 @@ static id hook_YTPlayerViewController_loadWithPlayerTransition(id self, SEL _cmd
 }
 
 static void YouModInitRetryHooks(void) {
-    // Try to hook dynamic methods; retry until resolved
-    static int retries = 0;
-    BOOL allDone = YES;
+    if (!IS_ENABLED(DebugMode)) return;
     
-    Class ytpr = NSClassFromString(@"YTPlayerResponse");
-    if (ytpr) {
-        SEL sel = @selector(playabilityStatus);
-        YouModForceResolve(ytpr, sel);
-        Method m = class_getInstanceMethod(ytpr, sel);
-        if (m && !orig_YTPlayerResponse_playabilityStatus) {
-            orig_YTPlayerResponse_playabilityStatus = (void *)method_getImplementation(m);
-            method_setImplementation(m, (IMP)hook_YTPlayerResponse_playabilityStatus);
-            YouModLogInfo(@"Hooked YTPlayerResponse.playabilityStatus");
-        }
-        if (!orig_YTPlayerResponse_playabilityStatus) allDone = NO;
-    }
-    
-    // YTPlayerViewController - try different selector signatures
-    Class ytpvc = NSClassFromString(@"YTPlayerViewController");
-    if (ytpvc) {
-        SEL sel = @selector(loadWithPlayerTransition:playbackConfig:);
-        YouModForceResolve(ytpvc, sel);
-        Method m = class_getInstanceMethod(ytpvc, sel);
-        if (!m) {
-            // Try alternative signatures
-            NSArray *alts = @[@"loadWithPlayerTransition:", @"loadWithPlayerTransition:playerTransition:", @"loadWithPlaylistTransition:playbackConfig:"];
-            for (NSString *altName in alts) {
-                SEL altSel = NSSelectorFromString(altName);
-                m = class_getInstanceMethod(ytpvc, altSel);
-                if (m) {
-                    sel = altSel;
-                    break;
+    @try {
+        // Try to hook dynamic methods; retry until resolved
+        static int retries = 0;
+        BOOL allDone = YES;
+        
+        Class ytpr = NSClassFromString(@"YTPlayerResponse");
+        if (ytpr) {
+            SEL sel = @selector(playabilityStatus);
+            YouModForceResolve(ytpr, sel);
+            Method m = class_getInstanceMethod(ytpr, sel);
+            if (m && !orig_YTPlayerResponse_playabilityStatus) {
+                IMP originalImp = method_getImplementation(m);
+                if (originalImp) {
+                    orig_YTPlayerResponse_playabilityStatus = (id (*)(id, SEL))originalImp;
+                    method_setImplementation(m, (IMP)hook_YTPlayerResponse_playabilityStatus);
+                    YouModLogInfo(@"Hooked YTPlayerResponse.playabilityStatus");
                 }
             }
+            if (!orig_YTPlayerResponse_playabilityStatus) allDone = NO;
         }
-        if (m && !orig_YTPlayerViewController_loadWithPlayerTransition) {
-            orig_YTPlayerViewController_loadWithPlayerTransition = (void *)method_getImplementation(m);
-            method_setImplementation(m, (IMP)hook_YTPlayerViewController_loadWithPlayerTransition);
-            YouModLogInfo([NSString stringWithFormat:@"Hooked YTPlayerViewController.%@", NSStringFromSelector(sel)]);
+        
+        // Note: YTPlayerViewController is already hooked via Logos %hook below
+        
+        if (!allDone && retries < 5) {
+            retries++;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                YouModInitRetryHooks();
+            });
         }
-        if (!orig_YTPlayerViewController_loadWithPlayerTransition) allDone = NO;
-    }
-    
-    if (!allDone && retries < 5) {
-        retries++;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            YouModInitRetryHooks();
-        });
+    } @catch (NSException *exception) {
+        YouModLogError([NSString stringWithFormat:@"YouModInitRetryHooks crashed: %@", exception]);
     }
 }
 
 %ctor {
     YouModLogInfo(@"YouMod debug initialized");
-    dispatch_async(dispatch_get_main_queue(), ^{
-        YouModDiagnostic();
-        YouModInitRetryHooks();
-    });
+    if (IS_ENABLED(DebugMode)) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            YouModDiagnostic();
+            YouModInitRetryHooks();
+        });
+    }
 }
 
 @implementation UIViewController (YouModDebug)
