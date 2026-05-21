@@ -43,8 +43,17 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 
 - (id)playerResponse {
     id resp = %orig;
+    if (!resp) {
+        YouModLogWarn(@"YTPlaybackData.playerResponse is nil - forcing bypass");
+    }
     YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.playerResponse = %@", resp ? NSStringFromClass([resp class]) : @"nil"]);
     return resp;
+}
+
+- (id)streamingData {
+    id data = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.streamingData = %@", data ? NSStringFromClass([data class]) : @"nil"]);
+    return data;
 }
 %end
 
@@ -66,15 +75,6 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 }
 %end
 
-%hook YTPlaybackData
-- (id)streamingData {
-    id data = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.streamingData = %@", data ? NSStringFromClass([data class]) : @"nil"]);
-    return data;
-}
-%end
-
-// Force resolve playabilityStatus method early
 %ctor {
     dispatch_async(dispatch_get_main_queue(), ^{
         NSArray *classesToCheck = @[
