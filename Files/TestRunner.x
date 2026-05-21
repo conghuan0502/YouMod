@@ -108,11 +108,15 @@ static NSString *StatusIcon(YouModTestStatus status) {
 
     start = CACurrentMediaTime();
     Class ytpvc = NSClassFromString(@"YTPlayerViewController");
-    BOOL hasLoadHook = ytpvc && class_getInstanceMethod(ytpvc, @selector(loadWithPlayerTransition:playbackConfig:));
+    BOOL hasLoadHook = NO;
+    if (ytpvc) {
+        hasLoadHook = class_getInstanceMethod(ytpvc, @selector(loadWithPlayerTransition:playbackConfig:)) ||
+                      class_getInstanceMethod(ytpvc, @selector(prepareToLoadWithPlayerTransition:expectedLayout:));
+    }
     elapsed = CACurrentMediaTime() - start;
 
     if (hasLoadHook) {
-        [self addTest:@"Player Load Hook" detail:@"loadWithPlayerTransition:playbackConfig: hooked" status:YouModTestStatusPassed duration:elapsed];
+        [self addTest:@"Player Load Hook" detail:@"Player load methods hooked" status:YouModTestStatusPassed duration:elapsed];
     } else {
         [self addTest:@"Player Load Hook" detail:@"Hook not detected" status:YouModTestStatusFailed duration:elapsed];
     }
@@ -150,10 +154,13 @@ static NSString *StatusIcon(YouModTestStatus status) {
     BOOL hasPlayabilityHook = ytpr && class_getInstanceMethod(ytpr, @selector(playabilityStatus));
     elapsed = CACurrentMediaTime() - start;
 
+    BOOL debugMode = [[NSUserDefaults standardUserDefaults] boolForKey:@"YouModDebugMode"];
     if (hasPlayabilityHook) {
         [self addTest:@"Playability Hook" detail:@"playabilityStatus hooked" status:YouModTestStatusPassed duration:elapsed];
+    } else if (debugMode) {
+        [self addTest:@"Playability Hook" detail:@"Debug mode enabled but hook not active" status:YouModTestStatusFailed duration:elapsed];
     } else {
-        [self addTest:@"Playability Hook" detail:@"Not hooked" status:YouModTestStatusWarning duration:elapsed];
+        [self addTest:@"Playability Hook" detail:@"Not hooked (debug mode disabled)" status:YouModTestStatusPassed duration:elapsed];
     }
 }
 
