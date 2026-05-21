@@ -79,13 +79,6 @@ static NSMutableArray <YTIItemSectionRenderer *> *filteredArray(NSArray <YTIItem
     return newArray;
 }
 
-%hook YTPlayerResponse
-%new(@@:)
-- (NSMutableArray *)playerAdsArray { return %orig; }
-%new(@@:)
-- (NSMutableArray *)adSlotsArray { return %orig; }
-%end
-
 %hook YTIClientMdxGlobalConfig
 %new(B@:)
 - (BOOL)enableSkippableAd { return YES; }

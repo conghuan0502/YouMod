@@ -232,19 +232,6 @@ if [ -f "$ADS_FILE" ]; then
     else
         pass "Ads.x: createAdsPlaybackCoordinator does not return nil"
     fi
-
-    # Verify playerAdsArray/adSlotsArray don't return empty arrays
-    if grep -q "playerAdsArray.*return \[NSMutableArray array\]" "$ADS_FILE"; then
-        fail "Ads.x: playerAdsArray returns empty array (should use %orig)"
-    else
-        pass "Ads.x: playerAdsArray does not return empty array"
-    fi
-
-    if grep -q "adSlotsArray.*return \[NSMutableArray array\]" "$ADS_FILE"; then
-        fail "Ads.x: adSlotsArray returns empty array (should use %orig)"
-    else
-        pass "Ads.x: adSlotsArray does not return empty array"
-    fi
 fi
 
 # Check for any hardcoded old version strings that might cause API issues
