@@ -175,20 +175,10 @@ static id hook_YTPlayerResponse_playabilityStatus(id self, SEL _cmd) {
     return status;
 }
 
-static id (*orig_YTPlayerViewController_loadWithPlayerTransition)(id, SEL, id, id);
-static id hook_YTPlayerViewController_loadWithPlayerTransition(id self, SEL _cmd, id arg1, id arg2) {
-    id result = orig_YTPlayerViewController_loadWithPlayerTransition(self, _cmd, arg1, arg2);
-    NSString *videoID = [self valueForKey:@"_contentVideoID"];
-    if (videoID)
-        YouModLogInfo([NSString stringWithFormat:@"Playing video: %@", videoID]);
-    return result;
-}
-
 static void YouModInitRetryHooks(void) {
     if (!IS_ENABLED(DebugMode)) return;
     
     @try {
-        // Try to hook dynamic methods; retry until resolved
         static int retries = 0;
         BOOL allDone = YES;
         
@@ -207,8 +197,6 @@ static void YouModInitRetryHooks(void) {
             }
             if (!orig_YTPlayerResponse_playabilityStatus) allDone = NO;
         }
-        
-        // Note: YTPlayerViewController is already hooked via Logos %hook below
         
         if (!allDone && retries < 5) {
             retries++;
