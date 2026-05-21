@@ -10,7 +10,6 @@ static NSArray *blockedDomains;
 + (void)initialize {
     if (self == [_YouModBlockedURLProtocol class]) {
         blockedDomains = @[
-            @"iosantiabuse-pa.googleapis.com",
             @"play.googleapis.com",
             @"clients3.googleapis.com",
             @"s.youtube.com"
