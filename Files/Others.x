@@ -26,6 +26,833 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 - (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
 %end
 
+// Force resolve playabilityStatus method early
+%ctor {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        Class ytpr = NSClassFromString(@"YTPlayerResponse");
+        if (ytpr) {
+            // Force resolve playabilityStatus method
+            id dummy = [[ytpr alloc] init];
+            if ([dummy respondsToSelector:@selector(playabilityStatus)]) {
+                (void)[dummy playabilityStatus];
+            }
+        }
+    });
+}
+
+// Force playable on YTIPlayabilityStatus
+%hook YTIPlayabilityStatus
+- (BOOL)isPlayable {
+    BOOL orig = %orig;
+    if (!orig) {
+        YouModLogWarn(@"Forcing YTIPlayabilityStatus.isPlayable = YES");
+    }
+    return YES;
+}
+%end
+
+// Force playable on YTPlayerResponse playabilityStatus
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable - reason: %@", reason ?: @"nil");
+            // Force status to OK
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Blocking error overlay");
+}
+%end
+
+// Auto-confirm resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Auto-confirming");
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Auto-confirming legacy");
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+// Force playability bypass - intercept InnerTube response parsing
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    id result = %orig;
+    // Force playable status in response
+    if ([response respondsToSelector:@selector(playabilityStatus)]) {
+        id status = [response performSelector:@selector(playabilityStatus)];
+        if (status && [status respondsToSelector:@selector(isPlayable)]) {
+            BOOL playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+            if (!playable) {
+                NSString *reason = nil;
+                if ([status respondsToSelector:@selector(reason)])
+                    reason = [status performSelector:@selector(reason)];
+                YouModLogWarn(@"Forcing playable in response wrapper - reason: %@", reason ?: @"nil");
+                // Force playable by setting status to OK
+                if ([status respondsToSelector:@selector(setStatus:)]) {
+                    [status performSelector:@selector(setStatus:) withObject:@"OK"];
+                }
+                if ([status respondsToSelector:@selector(setPlayable:)]) {
+                    [status performSelector:@selector(setPlayable:) withObject:@YES];
+                }
+            }
+        }
+    }
+    return result;
+}
+%end
+
+// Bypass playability check in player response
+%hook YTPlayerResponse
+- (id)playabilityStatus {
+    id status = %orig;
+    if (status) {
+        BOOL playable = YES;
+        if ([status respondsToSelector:@selector(isPlayable)]) {
+            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
+        }
+        if (!playable) {
+            NSString *reason = nil;
+            if ([status respondsToSelector:@selector(reason)])
+                reason = [status performSelector:@selector(reason)];
+            YouModLogWarn(@"Bypassing unplayable status - reason: %@", reason ?: @"nil");
+            // Force playable
+            if ([status respondsToSelector:@selector(setStatus:)]) {
+                [status performSelector:@selector(setStatus:) withObject:@"OK"];
+            }
+            if ([status respondsToSelector:@selector(setPlayable:)]) {
+                [status performSelector:@selector(setPlayable:) withObject:@YES];
+            }
+        }
+    }
+    return status;
+}
+%end
+
+// Block error overlay entirely
+%hook YTPlayabilityResolutionOverlayViewControllerImpl
+- (void)showError {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Blocking error overlay");
+    }
+    // Don't show error
+}
+%end
+
+// Auto-confirm playability resolution
+%hook YTPlayabilityResolutionUserActionUIControllerImpl
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
+%hook YTPlayabilityResolutionUserActionUIController
+- (void)showConfirmAlert {
+    if (IS_ENABLED(DebugMode)) {
+        YouModLogWarn(@"Auto-confirming playability resolution (legacy)");
+    }
+    [self confirmAlertDidPressConfirm];
+}
+%end
+
 // Try to disable Shorts PiP
 %hook YTColdConfig
 - (BOOL)shortsPlayerGlobalConfigEnableReelsPictureInPicture { return IS_ENABLED(DisablesShortsPiP) ? NO : %orig; }

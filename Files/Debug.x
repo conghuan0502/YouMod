@@ -86,6 +86,7 @@ static void YouModDiagnostic(void) {
     @try {
         NSDictionary *checks = @{
             @"YTIPlayabilityStatusEnum": @[@"isPlayable"],
+            @"YTIPlayabilityStatus": @[@"isPlayable", @"status", @"reason"],
             @"YTPlayerResponse": @[@"playabilityStatus"],
             @"YTPlaybackData": @[@"initWithCoder:"],
             @"YTPlayerViewController": @[@"loadWithPlayerTransition:playbackConfig:"],
