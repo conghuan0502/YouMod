@@ -16,62 +16,78 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 
 %hook YTIPlayabilityStatus
 - (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
-
-- (BOOL)isPlayable {
-    BOOL orig = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIPlayabilityStatus.isPlayable called, orig=%d", orig]);
-    if (!orig) {
-        YouModLogWarn(@"Forcing YTIPlayabilityStatus.isPlayable = YES");
-    }
-    return YES;
-}
-
-- (BOOL)isPlayableNowOrAfterUserAction {
-    YouModLogInfo(@"YTIPlayabilityStatus.isPlayableNowOrAfterUserAction called");
-    return YES;
-}
+- (BOOL)isPlayable { return YES; }
+- (BOOL)isPlayableNowOrAfterUserAction { return YES; }
 %end
 
 %hook YTPlaybackData
 - (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
 
-- (BOOL)isPlayable {
-    BOOL orig = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.isPlayable called, orig=%d", orig]);
-    return YES;
-}
+- (BOOL)isPlayable { return YES; }
 
-- (id)playerResponse {
-    id resp = %orig;
-    if (!resp) {
-        YouModLogWarn(@"YTPlaybackData.playerResponse is nil - forcing bypass");
-    }
-    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.playerResponse = %@", resp ? NSStringFromClass([resp class]) : @"nil"]);
-    return resp;
-}
-
-- (id)streamingData {
-    id data = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.streamingData = %@", data ? NSStringFromClass([data class]) : @"nil"]);
-    return data;
+- (id)status {
+    id status = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.status = %@", status ? NSStringFromClass([status class]) : @"nil"]);
+    return status;
 }
 %end
 
 // Hook InnerTube request to see if streaming data is fetched
 %hook YTInnerTubeResponseWrapper
 - (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
-    YouModLogInfo([NSString stringWithFormat:@"YTInnerTubeResponseWrapper initWithResponse: %@", response ? NSStringFromClass([response class]) : @"nil"]);
-    id result = %orig;
-    return result;
+    NSString *cls = response ? NSStringFromClass([response class]) : @"nil";
+    if (![cls isEqualToString:@"YTIEventLoggingResponse"] && ![cls isEqualToString:@"YTIAttestationChallengeResponse"]) {
+        YouModLogInfo([NSString stringWithFormat:@"InnerTube response: %@", cls]);
+    }
+    return %orig;
+}
+%end
+
+// Hook YTIStreamingData to check formats and expiration
+%hook YTIStreamingData
+- (id)adaptiveFormats {
+    id formats = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIStreamingData.adaptiveFormats = %lu", (unsigned long)[formats count]]);
+    return formats;
+}
+
+- (id)expiresInSeconds {
+    id expires = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIStreamingData.expiresInSeconds = %@", expires]);
+    return expires;
+}
+%end
+
+// Hook YTPlayerResponse (non-protobuf wrapper)
+%hook YTPlayerResponse
+- (BOOL)isPlayable { return YES; }
+- (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
+
+- (BOOL)isValid {
+    BOOL orig = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlayerResponse.isValid = %d", orig]);
+    return YES;
 }
 %end
 
 // Hook streaming data validation
 %hook YTIPlayerResponse
-- (id)streamingData {
-    id data = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.streamingData = %@", data ? NSStringFromClass([data class]) : @"nil"]);
-    return data;
+- (BOOL)isValid {
+    BOOL orig = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.isValid = %d", orig]);
+    return YES;
+}
+
+- (BOOL)areStreamsCloseToExpiringIfPlaybackStartsNow {
+    BOOL orig = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.areStreamsCloseToExpiring = %d", orig]);
+    return NO;
+}
+
+- (double)timeUntilStreamingDataExpirySeconds {
+    double orig = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.expirySeconds = %f", orig]);
+    return orig;
 }
 %end
 
