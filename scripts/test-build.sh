@@ -16,17 +16,17 @@ WARN_COUNT=0
 
 pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((PASS_COUNT++))
+    PASS_COUNT=$((PASS_COUNT + 1))
 }
 
 fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((FAIL_COUNT++))
+    FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
 warn() {
     echo -e "${YELLOW}[WARN]${NC} $1"
-    ((WARN_COUNT++))
+    WARN_COUNT=$((WARN_COUNT + 1))
 }
 
 info() {
@@ -86,8 +86,12 @@ for deb in "${DEB_FILES[@]}"; do
     # Extract and verify structure
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
-    ar x "$deb" 2>/dev/null
-    tar -xzf data.tar.gz 2>/dev/null || tar -xf data.tar.* 2>/dev/null || true
+    ar x "$deb" 2>/dev/null || true
+    if [ -f "data.tar.gz" ]; then
+        tar -xzf data.tar.gz 2>/dev/null || true
+    elif ls data.tar.* 1>/dev/null 2>&1; then
+        tar -xf data.tar.* 2>/dev/null || true
+    fi
 
     # Check dylib exists
     DYLIB_PATH=$(find . -name "YouMod.dylib" 2>/dev/null | head -1)
