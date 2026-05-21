@@ -29,6 +29,33 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 // Force resolve playabilityStatus method early
 %ctor {
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSArray *classesToCheck = @[
+            @"YTPlayerResponse",
+            @"YTIPlayerResponse",
+            @"YTPlaybackData",
+            @"YTIPlayabilityStatus",
+            @"YTIPlayabilityStatusEnum",
+            @"YTInnerTubeResponseWrapper",
+            @"YTPlayabilityResolutionUserActionUIController",
+            @"YTPlayabilityResolutionUserActionUIControllerImpl",
+            @"YTPlayabilityResolutionOverlayViewControllerImpl"
+        ];
+        for (NSString *clsName in classesToCheck) {
+            Class cls = NSClassFromString(clsName);
+            YouModLogInfo([NSString stringWithFormat:@"Class check: %@ = %@", clsName, cls ? @"EXISTS" : @"MISSING"]);
+            if (cls) {
+                unsigned int count;
+                Method *methods = class_copyMethodList(cls, &count);
+                if (methods) {
+                    for (unsigned int i = 0; i < count && i < 20; i++) {
+                        SEL sel = method_getName(methods[i]);
+                        YouModLogInfo([NSString stringWithFormat:@"  Method: %@", NSStringFromSelector(sel)]);
+                    }
+                    free(methods);
+                }
+            }
+        }
+        
         Class ytpr = NSClassFromString(@"YTPlayerResponse");
         if (ytpr) {
             id dummy = [[ytpr alloc] init];
