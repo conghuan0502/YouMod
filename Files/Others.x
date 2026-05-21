@@ -57,8 +57,21 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 }
 %end
 
+// Hook streaming data validation
 %hook YTIPlayerResponse
-- (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
+- (id)streamingData {
+    id data = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.streamingData = %@", data ? NSStringFromClass([data class]) : @"nil"]);
+    return data;
+}
+%end
+
+%hook YTPlaybackData
+- (id)streamingData {
+    id data = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.streamingData = %@", data ? NSStringFromClass([data class]) : @"nil"]);
+    return data;
+}
 %end
 
 // Force resolve playabilityStatus method early
