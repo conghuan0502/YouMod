@@ -195,15 +195,18 @@ for xfile in "$FILES_DIR"/*.x; do
         info "$filename has $unused_funcs static function(s) - verify they are used"
     fi
 
-    # Check for balanced %hook/%end
-    hook_count=$(grep -c "^%hook" "$xfile" 2>/dev/null | tr -d '[:space:]' || echo "0")
-    end_count=$(grep -c "^%end" "$xfile" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    # Check for balanced %hook/%end (accounting for %group blocks)
+    hook_count=$(grep -c "^%hook" "$xfile" 2>/dev/null | tr -d '[:space:]')
+    group_count=$(grep -c "^%group" "$xfile" 2>/dev/null | tr -d '[:space:]')
+    end_count=$(grep -c "^%end" "$xfile" 2>/dev/null | tr -d '[:space:]')
     hook_count=${hook_count:-0}
+    group_count=${group_count:-0}
     end_count=${end_count:-0}
-    if [ "$hook_count" -eq "$end_count" ] 2>/dev/null; then
-        pass "$filename: %hook/%end balanced ($hook_count hooks)"
+    total_opens=$((hook_count + group_count))
+    if [ "$total_opens" -eq "$end_count" ] 2>/dev/null; then
+        pass "$filename: %hook/%group/%end balanced ($hook_count hooks, $group_count groups)"
     else
-        fail "$filename: %hook ($hook_count) != %end ($end_count)"
+        fail "$filename: %hook ($hook_count) + %group ($group_count) != %end ($end_count)"
     fi
 
     # Check for balanced %{/}%
