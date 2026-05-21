@@ -36,6 +36,61 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 }
 %end
 
+// Hook YTIStreamingData to check formats
+%hook YTIStreamingData
+- (NSArray *)adaptiveFormatsArray {
+    NSArray *formats = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIStreamingData.adaptiveFormatsArray = %lu", (unsigned long)[formats count]]);
+    return formats;
+}
+%end
+
+// Hook YTIFormatStream to check URL and cipher
+%hook YTIFormatStream
+- (NSString *)URL {
+    NSString *url = %orig;
+    if (url && ![url containsString:@"googlevideo.com"]) {
+        YouModLogInfo([NSString stringWithFormat:@"YTIFormatStream.URL (non-googlevideo) = %@", url]);
+    }
+    return url;
+}
+
+- (NSString *)signatureCipher {
+    NSString *cipher = %orig;
+    if (cipher) {
+        YouModLogInfo([NSString stringWithFormat:@"YTIFormatStream.signatureCipher present, len=%lu", (unsigned long)cipher.length]);
+    }
+    return cipher;
+}
+%end
+
+// Hook YTPlayerResponse validation
+%hook YTPlayerResponse
+- (BOOL)isPlayable { return YES; }
+- (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
+%end
+
+// Hook YTSingleVideoController for stream loading
+%hook YTSingleVideoController
+- (void)setPlayerResponse:(id)arg1 {
+    YouModLogInfo([NSString stringWithFormat:@"YTSingleVideoController.setPlayerResponse: %@", arg1 ? NSStringFromClass([arg1 class]) : @"nil"]);
+    %orig;
+}
+
+- (void)loadWithPlayerTransition:(id)arg1 playbackConfig:(id)arg2 {
+    YouModLogInfo([NSString stringWithFormat:@"YTSingleVideoController.loadWithPlayerTransition"]);
+    %orig;
+}
+%end
+
+// Hook YTPlayerViewController for playback errors
+%hook YTPlayerViewController
+- (void)loadWithPlayerTransition:(id)arg1 playbackConfig:(id)arg2 {
+    YouModLogInfo([NSString stringWithFormat:@"YTPlayerViewController.loadWithPlayerTransition"]);
+    %orig;
+}
+%end
+
 %ctor {
     dispatch_async(dispatch_get_main_queue(), ^{
         NSArray *classesToCheck = @[
@@ -78,8 +133,12 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 
 // Block error overlay
 %hook YTPlayabilityResolutionOverlayViewControllerImpl
-- (void)showError {
+- (void)resetAndShowLoading:(id)arg {
     if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Blocking error overlay");
+}
+- (void)didUpdateKey:(id)key inEntityStore:(id)store withUpdateType:(id)type previousEntity:(id)prev entity:(id)entity {
+    if (IS_ENABLED(DebugMode)) YouModLogInfo([NSString stringWithFormat:@"Overlay update: key=%@ type=%@", key, type]);
+    %orig;
 }
 %end
 
@@ -88,6 +147,12 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 - (void)showConfirmAlert {
     if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Auto-confirming");
     [self confirmAlertDidPressConfirm];
+}
+- (void)showElementsInterstitialOverlay {
+    if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Blocking interstitial overlay");
+}
+- (void)showModernAgeVerificationDialog {
+    if (IS_ENABLED(DebugMode)) YouModLogWarn(@"Blocking age verification");
 }
 %end
 
