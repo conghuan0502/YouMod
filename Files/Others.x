@@ -16,10 +16,30 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 
 %hook YTIPlayabilityStatus
 - (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
+
+- (BOOL)isPlayable {
+    BOOL orig = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTIPlayabilityStatus.isPlayable called, orig=%d", orig]);
+    if (!orig) {
+        YouModLogWarn(@"Forcing YTIPlayabilityStatus.isPlayable = YES");
+    }
+    return YES;
+}
+
+- (BOOL)isPlayableNowOrAfterUserAction {
+    YouModLogInfo(@"YTIPlayabilityStatus.isPlayableNowOrAfterUserAction called");
+    return YES;
+}
 %end
 
 %hook YTPlaybackData
 - (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
+
+- (BOOL)isPlayable {
+    BOOL orig = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.isPlayable called, orig=%d", orig]);
+    return YES;
+}
 %end
 
 %hook YTIPlayerResponse
@@ -66,42 +86,6 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
         }
     });
 }
-
-// Force playable on YTIPlayabilityStatus
-%hook YTIPlayabilityStatus
-- (BOOL)isPlayable {
-    BOOL orig = %orig;
-    if (!orig) {
-        YouModLogWarn(@"Forcing YTIPlayabilityStatus.isPlayable = YES");
-    }
-    return YES;
-}
-%end
-
-// Force playable on YTPlayerResponse playabilityStatus
-%hook YTPlayerResponse
-- (id)playabilityStatus {
-    id status = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlayerResponse.playabilityStatus called, status=%@", status ? NSStringFromClass([status class]) : @"nil"]);
-    if (status) {
-        BOOL playable = YES;
-        if ([status respondsToSelector:@selector(isPlayable)]) {
-            playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
-        }
-        YouModLogInfo([NSString stringWithFormat:@"playabilityStatus.isPlayable=%d", playable]);
-        if (!playable) {
-            NSString *reason = nil;
-            if ([status respondsToSelector:@selector(reason)])
-                reason = [status performSelector:@selector(reason)];
-            YouModLogWarn([NSString stringWithFormat:@"Bypassing unplayable - reason: %@", reason ?: @"nil"]);
-            if ([status respondsToSelector:@selector(setStatus:)]) {
-                [status performSelector:@selector(setStatus:) withObject:@"OK"];
-            }
-        }
-    }
-    return status;
-}
-%end
 
 // Block error overlay
 %hook YTPlayabilityResolutionOverlayViewControllerImpl
