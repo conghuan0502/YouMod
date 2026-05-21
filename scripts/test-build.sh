@@ -196,9 +196,11 @@ for xfile in "$FILES_DIR"/*.x; do
     fi
 
     # Check for balanced %hook/%end (accounting for %group blocks)
-    hook_count=$(grep -c "^%hook" "$xfile" 2>/dev/null | tr -d '[:space:]')
-    group_count=$(grep -c "^%group" "$xfile" 2>/dev/null | tr -d '[:space:]')
-    end_count=$(grep -c "^%end" "$xfile" 2>/dev/null | tr -d '[:space:]')
+    # Strip both /* */ and // comments before counting
+    stripped=$(sed ':a; s|/\*[^*]*\*\([^*/][^*]*\*\)*/||g; /\/\*/{ N; ba; }; s|//.*||' "$xfile")
+    hook_count=$(echo "$stripped" | grep -c "^%hook" 2>/dev/null | tr -d '[:space:]')
+    group_count=$(echo "$stripped" | grep -c "^%group" 2>/dev/null | tr -d '[:space:]')
+    end_count=$(echo "$stripped" | grep -c "^%end" 2>/dev/null | tr -d '[:space:]')
     hook_count=${hook_count:-0}
     group_count=${group_count:-0}
     end_count=${end_count:-0}
