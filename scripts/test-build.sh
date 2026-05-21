@@ -87,10 +87,19 @@ for deb in "${DEB_FILES[@]}"; do
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
     ar x "$deb" 2>/dev/null || true
+
+    # Extract data archive
     if [ -f "data.tar.gz" ]; then
         tar -xzf data.tar.gz 2>/dev/null || true
     elif ls data.tar.* 1>/dev/null 2>&1; then
         tar -xf data.tar.* 2>/dev/null || true
+    fi
+
+    # Extract control archive for control file
+    if [ -f "control.tar.gz" ]; then
+        mkdir -p control_extract && cd control_extract
+        tar -xzf ../control.tar.gz 2>/dev/null || true
+        cd ..
     fi
 
     # Check dylib exists
@@ -101,18 +110,12 @@ for deb in "${DEB_FILES[@]}"; do
         fail "YouMod.dylib NOT found in $deb_name"
     fi
 
-    # Check control file
-    CONTROL_PATH=$(find . -name "control" -path "*/DEBIAN/*" 2>/dev/null | head -1)
+    # Check control file - try multiple locations
+    CONTROL_PATH=$(find . -name "control" 2>/dev/null | head -1)
     if [ -n "$CONTROL_PATH" ] && [ -f "$CONTROL_PATH" ]; then
-        pass "DEBIAN/control found in $deb_name"
+        pass "control file found in $deb_name"
     else
-        # Try alternative location
-        CONTROL_PATH=$(find . -name "control" 2>/dev/null | head -1)
-        if [ -n "$CONTROL_PATH" ]; then
-            pass "control file found in $deb_name"
-        else
-            fail "control file NOT found in $deb_name"
-        fi
+        fail "control file NOT found in $deb_name"
     fi
 
     # Check Info.plist or tweak plist
@@ -186,16 +189,18 @@ for xfile in "$FILES_DIR"/*.x; do
     filename=$(basename "$xfile")
 
     # Check for unused static functions (common cause of build failures)
-    # This is a simple grep check - not perfect but catches obvious issues
-    unused_funcs=$(grep -c "^static.*{" "$xfile" 2>/dev/null || echo "0")
-    if [ "$unused_funcs" -gt 0 ]; then
+    unused_funcs=$(grep -c "^static.*{" "$xfile" 2>/dev/null | tr -d '[:space:]')
+    unused_funcs=${unused_funcs:-0}
+    if [ "$unused_funcs" -gt 0 ] 2>/dev/null; then
         info "$filename has $unused_funcs static function(s) - verify they are used"
     fi
 
     # Check for balanced %hook/%end
-    hook_count=$(grep -c "^%hook" "$xfile" 2>/dev/null || echo "0")
-    end_count=$(grep -c "^%end" "$xfile" 2>/dev/null || echo "0")
-    if [ "$hook_count" -eq "$end_count" ]; then
+    hook_count=$(grep -c "^%hook" "$xfile" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    end_count=$(grep -c "^%end" "$xfile" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    hook_count=${hook_count:-0}
+    end_count=${end_count:-0}
+    if [ "$hook_count" -eq "$end_count" ] 2>/dev/null; then
         pass "$filename: %hook/%end balanced ($hook_count hooks)"
     else
         fail "$filename: %hook ($hook_count) != %end ($end_count)"
