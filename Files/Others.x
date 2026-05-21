@@ -40,6 +40,21 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
     YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.isPlayable called, orig=%d", orig]);
     return YES;
 }
+
+- (id)playerResponse {
+    id resp = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.playerResponse = %@", resp ? NSStringFromClass([resp class]) : @"nil"]);
+    return resp;
+}
+%end
+
+// Hook InnerTube request to see if streaming data is fetched
+%hook YTInnerTubeResponseWrapper
+- (id)initWithResponse:(id)response cacheContext:(id)arg2 requestStatistics:(id)arg3 mutableSharedData:(id)arg4 {
+    YouModLogInfo([NSString stringWithFormat:@"YTInnerTubeResponseWrapper initWithResponse: %@", response ? NSStringFromClass([response class]) : @"nil"]);
+    id result = %orig;
+    return result;
+}
 %end
 
 %hook YTIPlayerResponse
