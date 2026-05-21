@@ -22,14 +22,7 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 
 %hook YTPlaybackData
 - (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
-
 - (BOOL)isPlayable { return YES; }
-
-- (id)status {
-    id status = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlaybackData.status = %@", status ? NSStringFromClass([status class]) : @"nil"]);
-    return status;
-}
 %end
 
 // Hook InnerTube request to see if streaming data is fetched
@@ -40,54 +33,6 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
         YouModLogInfo([NSString stringWithFormat:@"InnerTube response: %@", cls]);
     }
     return %orig;
-}
-%end
-
-// Hook YTIStreamingData to check formats and expiration
-%hook YTIStreamingData
-- (id)adaptiveFormats {
-    id formats = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIStreamingData.adaptiveFormats = %lu", (unsigned long)[formats count]]);
-    return formats;
-}
-
-- (id)expiresInSeconds {
-    id expires = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIStreamingData.expiresInSeconds = %@", expires]);
-    return expires;
-}
-%end
-
-// Hook YTPlayerResponse (non-protobuf wrapper)
-%hook YTPlayerResponse
-- (BOOL)isPlayable { return YES; }
-- (BOOL)isPlayableInBackground { return IS_ENABLED(BackgroundPlayback) ? YES : %orig; }
-
-- (BOOL)isValid {
-    BOOL orig = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlayerResponse.isValid = %d", orig]);
-    return YES;
-}
-%end
-
-// Hook streaming data validation
-%hook YTIPlayerResponse
-- (BOOL)isValid {
-    BOOL orig = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.isValid = %d", orig]);
-    return YES;
-}
-
-- (BOOL)areStreamsCloseToExpiringIfPlaybackStartsNow {
-    BOOL orig = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.areStreamsCloseToExpiring = %d", orig]);
-    return NO;
-}
-
-- (double)timeUntilStreamingDataExpirySeconds {
-    double orig = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTIPlayerResponse.expirySeconds = %f", orig]);
-    return orig;
 }
 %end
 
