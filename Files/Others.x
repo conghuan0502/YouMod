@@ -55,11 +55,13 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 %hook YTPlayerResponse
 - (id)playabilityStatus {
     id status = %orig;
+    YouModLogInfo([NSString stringWithFormat:@"YTPlayerResponse.playabilityStatus called, status=%@", status ? [status class] : @"nil"]);
     if (status) {
         BOOL playable = YES;
         if ([status respondsToSelector:@selector(isPlayable)]) {
             playable = (BOOL)(NSInteger)[status performSelector:@selector(isPlayable)];
         }
+        YouModLogInfo([NSString stringWithFormat:@"playabilityStatus.isPlayable=%d", playable]);
         if (!playable) {
             NSString *reason = nil;
             if ([status respondsToSelector:@selector(reason)])
