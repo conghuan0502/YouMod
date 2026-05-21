@@ -55,7 +55,7 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 %hook YTPlayerResponse
 - (id)playabilityStatus {
     id status = %orig;
-    YouModLogInfo([NSString stringWithFormat:@"YTPlayerResponse.playabilityStatus called, status=%@", status ? [status class] : @"nil"]);
+    YouModLogInfo([NSString stringWithFormat:@"YTPlayerResponse.playabilityStatus called, status=%@", status ? NSStringFromClass([status class]) : @"nil"]);
     if (status) {
         BOOL playable = YES;
         if ([status respondsToSelector:@selector(isPlayable)]) {
