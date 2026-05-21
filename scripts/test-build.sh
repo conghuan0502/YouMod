@@ -196,8 +196,8 @@ for xfile in "$FILES_DIR"/*.x; do
     fi
 
     # Check for balanced %hook/%end (accounting for %group blocks)
-    # Strip both /* */ and // comments before counting
-    stripped=$(sed ':a; s|/\*[^*]*\*\([^*/][^*]*\*\)*/||g; /\/\*/{ N; ba; }; s|//.*||' "$xfile")
+    # Strip both /* */ and // comments before counting (use perl for cross-platform compat)
+    stripped=$(perl -0777 -pe 's{/\*.*?\*/}{}gs; s{//.*}{}g' "$xfile" 2>/dev/null || cat "$xfile")
     hook_count=$(echo "$stripped" | grep -c "^%hook" 2>/dev/null | tr -d '[:space:]')
     group_count=$(echo "$stripped" | grep -c "^%group" 2>/dev/null | tr -d '[:space:]')
     end_count=$(echo "$stripped" | grep -c "^%end" 2>/dev/null | tr -d '[:space:]')
@@ -233,14 +233,17 @@ if [ -f "$ADS_FILE" ]; then
         pass "Ads.x: createAdsPlaybackCoordinator does not return nil"
     fi
 
-    # Check if playerAdsArray returns empty array (may cause issues)
+    # Verify playerAdsArray/adSlotsArray don't return empty arrays
     if grep -q "playerAdsArray.*return \[NSMutableArray array\]" "$ADS_FILE"; then
-        warn "Ads.x: playerAdsArray returns empty array (may cause playback issues)"
+        fail "Ads.x: playerAdsArray returns empty array (should use %orig)"
+    else
+        pass "Ads.x: playerAdsArray does not return empty array"
     fi
 
-    # Check if adSlotsArray returns empty array (may cause issues)
     if grep -q "adSlotsArray.*return \[NSMutableArray array\]" "$ADS_FILE"; then
-        warn "Ads.x: adSlotsArray returns empty array (may cause playback issues)"
+        fail "Ads.x: adSlotsArray returns empty array (should use %orig)"
+    else
+        pass "Ads.x: adSlotsArray does not return empty array"
     fi
 fi
 

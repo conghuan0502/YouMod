@@ -81,9 +81,9 @@ static NSMutableArray <YTIItemSectionRenderer *> *filteredArray(NSArray <YTIItem
 
 %hook YTPlayerResponse
 %new(@@:)
-- (NSMutableArray *)playerAdsArray { return [NSMutableArray array]; }
+- (NSMutableArray *)playerAdsArray { return %orig; }
 %new(@@:)
-- (NSMutableArray *)adSlotsArray { return [NSMutableArray array]; }
+- (NSMutableArray *)adSlotsArray { return %orig; }
 %end
 
 %hook YTIClientMdxGlobalConfig
