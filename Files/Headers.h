@@ -162,6 +162,7 @@
 #define BlockDomains @"YouModBlockDomains"
 #define DisableAdCoordinatorHooks @"YouModDisableAdCoordinatorHooks"
 #define SpoofClientVersion @"YouModSpoofClientVersion"
+#define SpoofWebSafari @"YouModSpoofWebSafari"
 typedef NS_ENUM(NSInteger, YouModLogLevel) {
     YouModLogLevelInfo,
     YouModLogLevelWarn,

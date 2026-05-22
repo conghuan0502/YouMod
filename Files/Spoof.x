@@ -1,6 +1,28 @@
 #import "Headers.h"
 #import <objc/message.h>
 
+static void SpoofSwizzleMethod(Class cls, SEL sel, id block, NSString *logName) {
+    Method m = class_getInstanceMethod(cls, sel);
+    IMP orig = NULL;
+
+    if (!m) {
+        id dummy = ((id(*)(id, SEL))objc_msgSend)((id)cls, sel_registerName("alloc"));
+        dummy = ((id(*)(id, SEL))objc_msgSend)(dummy, sel_registerName("init"));
+        ((id(*)(id, SEL))objc_msgSend)(dummy, sel);
+        m = class_getInstanceMethod(cls, sel);
+    }
+
+    if (!m) {
+        YouModLogWarn([NSString stringWithFormat:@"Spoof: %@ not resolved", logName]);
+        return;
+    }
+
+    orig = method_getImplementation(m);
+    IMP newImp = imp_implementationWithBlock(block);
+    method_setImplementation(m, newImp);
+    YouModLogInfo([NSString stringWithFormat:@"Spoof: %@ spoofed", logName]);
+}
+
 %ctor {
     %init;
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -10,31 +32,18 @@
             return;
         }
 
-        SEL sel = @selector(clientVersion);
-        Method m = class_getInstanceMethod(cls, sel);
-        IMP orig = NULL;
-
-        if (!m) {
-            id dummy = ((id(*)(id, SEL))objc_msgSend)((id)cls, sel_registerName("alloc"));
-            dummy = ((id(*)(id, SEL))objc_msgSend)(dummy, sel_registerName("init"));
-            ((id(*)(id, SEL))objc_msgSend)(dummy, sel);
-            m = class_getInstanceMethod(cls, sel);
-        }
-
-        if (!m) {
-            YouModLogWarn(@"Spoof: clientVersion not resolved");
-            return;
-        }
-
-        orig = method_getImplementation(m);
-        IMP newImp = imp_implementationWithBlock(^NSString*(id _self) {
+        SpoofSwizzleMethod(cls, @selector(clientVersion), ^NSString*(id _self) {
             if (IS_ENABLED(SpoofClientVersion)) {
                 return @"21.20.4";
             }
-            return ((NSString*(*)(id, SEL))orig)(_self, sel);
-        });
+            return ((NSString*(*)(id, SEL))objc_msgSend)(_self, @selector(clientVersion));
+        }, @"clientVersion");
 
-        method_setImplementation(m, newImp);
-        YouModLogInfo(@"Spoof: clientVersion -> 21.20.4");
+        SpoofSwizzleMethod(cls, @selector(clientName), ^NSString*(id _self) {
+            if (IS_ENABLED(SpoofWebSafari)) {
+                return @"WEB_SAFARI";
+            }
+            return ((NSString*(*)(id, SEL))objc_msgSend)(_self, @selector(clientName));
+        }, @"clientName");
     });
 }

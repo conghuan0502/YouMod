@@ -255,6 +255,8 @@
 "DISABLE_AD_COORDINATOR_DESC" = "Tắt hook ad coordinator. Bật nếu video không phát được (Something went wrong).";
 "SPOOF_CLIENT_VERSION" = "Giả mạo phiên bản";
 "SPOOF_CLIENT_VERSION_DESC" = "Báo cáo phiên bản YouTube mới (21.20.4) cho máy chủ. Có thể giúp vượt qua chặn dựa trên phiên bản.";
+"SPOOF_WEB_SAFARI" = "Giả mạo Web Safari";
+"SPOOF_WEB_SAFARI_DESC" = "Nhận dạng là trình duyệt Safari (WEB_SAFARI) thay vì ứng dụng iOS. Có thể giúp vượt qua chặn dựa trên client.";
 "DEBUG_MODE" = "Chế độ gỡ lỗi";
 "DEBUG_MODE_DESC" = "Ghi lại lỗi phát video chi tiết (Something went wrong, không có luồng, v.v.) vào bảng điều khiển hệ thống.";
 "VIEW_LOGS" = "Xem nhật ký gỡ lỗi";

@@ -549,6 +549,7 @@ static NSString *GetCacheSize() { // YTLite - @dayanch96
             BASIC_SWITCH(LOC(@"BLOCK_DOMAINS"), LOC(@"BLOCK_DOMAINS_DESC"), BlockDomains),
             BASIC_SWITCH(LOC(@"DISABLE_AD_COORDINATOR"), LOC(@"DISABLE_AD_COORDINATOR_DESC"), DisableAdCoordinatorHooks),
             BASIC_SWITCH(LOC(@"SPOOF_CLIENT_VERSION"), LOC(@"SPOOF_CLIENT_VERSION_DESC"), SpoofClientVersion),
+            BASIC_SWITCH(LOC(@"SPOOF_WEB_SAFARI"), LOC(@"SPOOF_WEB_SAFARI_DESC"), SpoofWebSafari),
             [YTSettingsSectionItemClass itemWithTitle:LOC(@"RUN_TESTS")
                 titleDescription:LOC(@"RUN_TESTS_DESC")
                 accessibilityIdentifier:nil

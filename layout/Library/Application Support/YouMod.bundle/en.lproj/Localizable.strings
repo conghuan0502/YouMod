@@ -267,5 +267,7 @@
 "DISABLE_AD_COORDINATOR_DESC" = "Disable ad coordinator hook. Turn ON if videos fail to play (Something went wrong).";
 "SPOOF_CLIENT_VERSION" = "Spoof Client Version";
 "SPOOF_CLIENT_VERSION_DESC" = "Report a modern YouTube version (21.20.4) to the server. May help bypass version-based blocks.";
+"SPOOF_WEB_SAFARI" = "Spoof as Web Safari";
+"SPOOF_WEB_SAFARI_DESC" = "Identify as Safari browser (WEB_SAFARI) instead of iOS app. May help bypass client-based blocks.";
 "RUN_TESTS" = "Run Diagnostics";
 "RUN_TESTS_DESC" = "Run automated tests to check tweak functionality and detect playback issues.";

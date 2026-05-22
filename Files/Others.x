@@ -41,26 +41,22 @@ Class YTILikeResponseClass, YTIDislikeResponseClass, YTIRemoveLikeResponseClass;
 - (NSArray *)adaptiveFormatsArray {
     NSArray *formats = %orig;
     YouModLogInfo([NSString stringWithFormat:@"YTIStreamingData.adaptiveFormatsArray = %lu", (unsigned long)[formats count]]);
+    if ([formats count] > 0) {
+        id first = formats[0];
+        YouModLogInfo([NSString stringWithFormat:@"  First format class: %@", NSStringFromClass([first class])]);
+        // Log URL và cipher từ format đầu tiên
+        SEL urlSel = NSSelectorFromString(@"URL");
+        SEL cipherSel = NSSelectorFromString(@"signatureCipher");
+        if ([first respondsToSelector:urlSel]) {
+            NSString *url = ((id (*)(id, SEL))objc_msgSend)(first, urlSel);
+            YouModLogInfo([NSString stringWithFormat:@"  format.URL = %@", url]);
+        }
+        if ([first respondsToSelector:cipherSel]) {
+            NSString *cipher = ((id (*)(id, SEL))objc_msgSend)(first, cipherSel);
+            YouModLogInfo([NSString stringWithFormat:@"  format.signatureCipher = %@", cipher ? @"YES" : @"NO"]);
+        }
+    }
     return formats;
-}
-%end
-
-// Hook YTIFormatStream to check URL and cipher
-%hook YTIFormatStream
-- (NSString *)URL {
-    NSString *url = %orig;
-    if (url && ![url containsString:@"googlevideo.com"]) {
-        YouModLogInfo([NSString stringWithFormat:@"YTIFormatStream.URL (non-googlevideo) = %@", url]);
-    }
-    return url;
-}
-
-- (NSString *)signatureCipher {
-    NSString *cipher = %orig;
-    if (cipher) {
-        YouModLogInfo([NSString stringWithFormat:@"YTIFormatStream.signatureCipher present, len=%lu", (unsigned long)cipher.length]);
-    }
-    return cipher;
 }
 %end
 
